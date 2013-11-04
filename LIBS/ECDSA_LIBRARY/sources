@@ -1,0 +1,32 @@
+TARGETNAME=ecdsa
+TARGETTYPE=LIBRARY
+TARGET_DESTINATION=$(_OBJ_DIR)
+
+UMTYPE=console
+UMENTRY=main
+
+MSC_WARNING_LEVEL=/W2
+BUFFER_OVERFLOW_CHECKS=1
+
+USE_MSVCRT=1
+USE_NATIVE_EH=1
+
+USER_C_FLAGS=$(USER_C_FLAGS) /EHsc
+C_DEFINES=$(C_DEFINES)
+
+LINKER_FLAGS=/pdbpath:none /pdb:a
+LINKER_DBG_SECTION=/debug:none
+LINKER_FORCE_NO_DBG_SECTION=1
+
+INCLUDES=$(DDK_INC_PATH);$(CRT_INC_PATH);$(SDK_INC_PATH);$(PLATFORM_SDK_PATH)\Include
+USER_INCLUDES=.\includes;.\pubinc;..\common;
+
+TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
+           $(SDK_LIB_PATH)\setupapi.lib \
+           $(SDK_LIB_PATH)\user32.lib
+
+SOURCES=ecdsa.c	\
+		ecp.c \
+		bignum.c \
+		asn1write.c \
+		asn1parse.c
