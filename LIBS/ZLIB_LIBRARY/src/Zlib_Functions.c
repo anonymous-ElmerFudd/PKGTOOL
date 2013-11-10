@@ -16,14 +16,14 @@
 
 /// function for determining the maximum size needed to 
 //  guarantee adequate buffer size
-int Zlib_GetMaxCompressedLen( int nLenSrc ) 
+int __stdcall Zlib_GetMaxCompressedLen( int nLenSrc ) 
 {
     int n16kBlocks = (nLenSrc+(ZLIB_BLOCK_SIZE-1)) / ZLIB_BLOCK_SIZE; // round up any fraction of a block
     return ( nLenSrc + 6 + (n16kBlocks*5) );
 }
 
 /// Zlib compress (deflate) the buffer
-int Zlib_CompressData( unsigned char* pInBuffer, int nLenSrc, unsigned char* pOutBuffer, int nLenDst )
+int __stdcall Zlib_CompressData( unsigned char* pInBuffer, int nLenSrc, unsigned char* pOutBuffer, int nLenDst, int CompressLevel )
 {
 	int nErr = -1;
 	int nRet = -1;
@@ -36,8 +36,12 @@ int Zlib_CompressData( unsigned char* pInBuffer, int nLenSrc, unsigned char* pOu
 	// verify input params are valid
 	if ( (pInBuffer == NULL) || (nLenSrc == 0) || (pOutBuffer == NULL) || (nLenDst == 0) )
 		goto exit;
+
+	// verify compress level is -1, or 0 to 9
+	if ( (CompressLevel != -1) && (CompressLevel > 9) )
+		goto exit;
     
-    nErr= deflateInit( &zInfo, Z_DEFAULT_COMPRESSION ); // zlib function
+    nErr= deflateInit( &zInfo, CompressLevel ); // zlib function
     if ( nErr == Z_OK ) {
         nErr= deflate( &zInfo, Z_FINISH );              // zlib function
         if ( nErr == Z_STREAM_END ) {
@@ -52,7 +56,7 @@ exit:
 }
 
 /// Zlib decompress (inflate) the buffer
-int Zlib_UncompressData( unsigned char* pInBuffer, int nLenSrc, unsigned char* pOutBuffer, int nLenDst )
+int __stdcall Zlib_UncompressData( unsigned char* pInBuffer, int nLenSrc, unsigned char* pOutBuffer, int nLenDst )
 {
 	int nErr = -1;
 	int nRet = -1;

@@ -20,7 +20,49 @@
 //
 *///////////////////////////////////////////////////////////////////////////////////////
 
-uint32_t ReadFileToBuffer(char* pszInFileName, uint8_t** ppBuffer, uint32_t dwBytesToRead, uint32_t* pdwBytesRead, uint8_t bAllocMemory)
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+//
+uint32_t __stdcall GetMyFileSizeA(char* pszInFileName, LARGE_INTEGER* pqwFileSize)
+{
+	HANDLE hFile = NULL;
+	LARGE_INTEGER qwMyFileSize = {0};
+	int retval = -1;
+
+
+	// validate input params
+	if ( (pszInFileName == NULL) || (pqwFileSize == NULL) )
+		goto exit;
+
+	// open the file handle to the file
+	hFile = CreateFileA((LPCSTR)pszInFileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hFile == INVALID_HANDLE_VALUE)
+		goto exit;
+
+	// get the file size
+	if ( GetFileSizeEx(hFile, &qwMyFileSize) == 0 ) {
+		printf("Error:  Failed to get size of file:%s\n", pszInFileName);
+		goto exit;
+	}
+	else
+		*pqwFileSize = qwMyFileSize;
+	
+	// status success
+	retval = 0x00;
+
+exit:
+	// if 'hFile' handle valid, close it
+	if ( (hFile != INVALID_HANDLE_VALUE) && (hFile != NULL) )
+		CloseHandle(hFile);
+
+	// return status
+	return retval;
+}
+
+
+
+uint32_t __stdcall ReadFileToBuffer(char* pszInFileName, uint8_t** ppBuffer, uint32_t dwBytesToRead, uint32_t* pdwBytesRead, uint8_t bAllocMemory)
 {
 	HANDLE hFile = NULL;	
 	uint32_t dwBytesReadIn = 0;
@@ -105,7 +147,7 @@ exit:
 //
 *///////////////////////////////////////////////////////////////////////////////////////
 
-uint32_t WriteBufferToFile(char* pszInFileName, uint8_t* pInBuffer, uint32_t dwSizeOfBuffer, uint8_t bAppend, uint32_t* pdwBytesWritten)
+uint32_t __stdcall WriteBufferToFile(char* pszInFileName, uint8_t* pInBuffer, uint32_t dwSizeOfBuffer, uint8_t bAppend, int32_t dwFilePosition, uint32_t* pdwBytesWritten)
 {
 	HANDLE hFile = NULL;	
 	uint32_t dwBytesWritten = 0;
@@ -125,10 +167,18 @@ uint32_t WriteBufferToFile(char* pszInFileName, uint8_t* pInBuffer, uint32_t dwS
 	if (hFile == INVALID_HANDLE_VALUE)
 		goto exit;
 
-	// if we are appending, then move ptr to current "EOF"
+	// if we are appending, if we specified a "file position", then
+	// move to "file position", otherwise move to EOF
 	if (bAppend == TRUE) {
-		if ( SetFilePointer(hFile, 0, NULL, FILE_END) == INVALID_SET_FILE_POINTER )
-			goto exit;
+		if (dwFilePosition != 0) {
+			// set position to specified "dwFilePosition"
+			if ( SetFilePointer(hFile, dwFilePosition, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER )
+				goto exit;
+		} else {
+			// set position to EOF (since we didn't set a position)
+			if ( SetFilePointer(hFile, 0, NULL, FILE_END) == INVALID_SET_FILE_POINTER )
+				goto exit;
+		}
 	}
 
 	// go and write the desired data

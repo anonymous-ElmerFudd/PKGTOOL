@@ -15,6 +15,11 @@
 
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 
 /*! SCE file align. */
 #define SCE_ALIGN 0x10
@@ -160,6 +165,11 @@
 #define NP_TYPE_EXEC 1
 #define NP_TYPE_USPRX (NP_TYPE_UPDATE | NP_TYPE_SPRX)
 #define NP_TYPE_UEXEC (NP_TYPE_UPDATE | NP_TYPE_EXEC)
+
+
+
+#pragma warning (push)
+#pragma warning (disable: 4201)
 
 /*! SCE header. */
 typedef struct _sce_header
@@ -570,51 +580,58 @@ typedef struct _sce_buffer_ctxt
 } sce_buffer_ctxt_t;
 
 /*! Create SCE file context from SCE file buffer. */
-sce_buffer_ctxt_t *sce_create_ctxt_from_buffer(u8 *scebuffer);
+sce_buffer_ctxt_t* __stdcall sce_create_ctxt_from_buffer(u8 *scebuffer);
 
 /*! Create SCE file context for SELF creation. */
-sce_buffer_ctxt_t *sce_create_ctxt_build_self(u8 *elf, u32 elf_len);
+sce_buffer_ctxt_t*__stdcall sce_create_ctxt_build_self(u8 *elf, u32 elf_len);
 
 /*! Add data section to SCE context. */
-void sce_add_data_section(sce_buffer_ctxt_t *ctxt, void *buffer, u32 size, BOOL may_compr);
+void __stdcall sce_add_data_section(sce_buffer_ctxt_t *ctxt, void *buffer, u32 size, BOOL may_compr);
 
 /*! Set metadata section header. */
-void sce_set_metash(sce_buffer_ctxt_t *ctxt, u32 type, BOOL encrypted, u32 idx);
+void __stdcall sce_set_metash(sce_buffer_ctxt_t *ctxt, u32 type, BOOL encrypted, u32 idx);
 
 /*! Compress data. */
-void sce_compress_data(sce_buffer_ctxt_t *ctxt);
+void __stdcall sce_compress_data(sce_buffer_ctxt_t *ctxt);
 
 /*! Layout offsets for SCE file creation. */
-void sce_layout_ctxt(sce_buffer_ctxt_t *ctxt);
+void __stdcall sce_layout_ctxt(sce_buffer_ctxt_t *ctxt);
 
 /*! Encrypt context. */
-BOOL sce_encrypt_ctxt(sce_buffer_ctxt_t *ctxt, u8 *keyset);
+BOOL __stdcall sce_encrypt_ctxt(sce_buffer_ctxt_t *ctxt, u8 *keyset);
 
 /*! Write context to file. */
-BOOL sce_write_ctxt(sce_buffer_ctxt_t *ctxt, s8 *fname);
+BOOL __stdcall sce_write_ctxt(sce_buffer_ctxt_t *ctxt, s8 *fname);
 
 /*! Decrypt header (use passed metadata_into if not NULL). */
-BOOL sce_decrypt_header(sce_buffer_ctxt_t *ctxt, u8 *metadata_info, u8 *keyset);
+BOOL __stdcall sce_decrypt_header(sce_buffer_ctxt_t *ctxt, u8 *metadata_info, u8 *keyset);
 
 /*! Decrypt data. */
-BOOL sce_decrypt_data(sce_buffer_ctxt_t *ctxt);
+BOOL __stdcall sce_decrypt_data(sce_buffer_ctxt_t *ctxt);
 
 /*! Print SCE file info. */
-void sce_print_info(FILE *fp, sce_buffer_ctxt_t *ctxt);
+void __stdcall sce_print_info(FILE *fp, sce_buffer_ctxt_t *ctxt);
 
 /*! Get version string from version. */
-s8 *sce_version_to_str(u64 version);
+s8* __stdcall sce_version_to_str(u64 version);
 
 /*! Get version from version string. */
-u64 sce_str_to_version(s8 *version);
+u64 __stdcall sce_str_to_version(s8 *version);
 
 /*! Convert hex version to dec version. */
-u64 sce_hexver_to_decver(u64 version);
+u64 __stdcall sce_hexver_to_decver(u64 version);
 
 /*! Get control info. */
-control_info_t *sce_get_ctrl_info(sce_buffer_ctxt_t *ctxt, u32 type);
+control_info_t* __stdcall sce_get_ctrl_info(sce_buffer_ctxt_t *ctxt, u32 type);
 
 /*! Get optional header. */
-opt_header_t *sce_get_opt_header(sce_buffer_ctxt_t *ctxt, u32 type);
+opt_header_t* __stdcall sce_get_opt_header(sce_buffer_ctxt_t *ctxt, u32 type);
+
+#pragma warning (pop)
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

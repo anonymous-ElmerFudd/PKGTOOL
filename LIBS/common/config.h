@@ -191,26 +191,27 @@
  *
  * Requires POLARSSL_ENABLE_WEAK_CIPHERSUITES as well to enable
  * the following ciphersuites:
- *      TLS_RSA_WITH_NULL_MD5
- *      TLS_RSA_WITH_NULL_SHA
- *      TLS_RSA_WITH_NULL_SHA256
+ *      TLS_ECDHE_ECDSA_WITH_NULL_SHA
  *      TLS_ECDHE_RSA_WITH_NULL_SHA
- *      TLS_PSK_WITH_NULL_SHA
- *      TLS_PSK_WITH_NULL_SHA256
- *      TLS_PSK_WITH_NULL_SHA384
- *      TLS_DHE_PSK_WITH_NULL_SHA
- *      TLS_DHE_PSK_WITH_NULL_SHA256
- *      TLS_DHE_PSK_WITH_NULL_SHA384
- *      TLS_RSA_PSK_WITH_NULL_SHA
- *      TLS_RSA_PSK_WITH_NULL_SHA256
- *      TLS_RSA_PSK_WITH_NULL_SHA384
- *      TLS_ECDHE_PSK_WITH_NULL_SHA
- *      TLS_ECDHE_PSK_WITH_NULL_SHA256
  *      TLS_ECDHE_PSK_WITH_NULL_SHA384
+ *      TLS_ECDHE_PSK_WITH_NULL_SHA256
+ *      TLS_ECDHE_PSK_WITH_NULL_SHA
+ *      TLS_DHE_PSK_WITH_NULL_SHA384
+ *      TLS_DHE_PSK_WITH_NULL_SHA256
+ *      TLS_DHE_PSK_WITH_NULL_SHA
+ *      TLS_RSA_WITH_NULL_SHA256
+ *      TLS_RSA_WITH_NULL_SHA
+ *      TLS_RSA_WITH_NULL_MD5
+ *      TLS_RSA_PSK_WITH_NULL_SHA384
+ *      TLS_RSA_PSK_WITH_NULL_SHA256
+ *      TLS_RSA_PSK_WITH_NULL_SHA
+ *      TLS_PSK_WITH_NULL_SHA384
+ *      TLS_PSK_WITH_NULL_SHA256
+ *      TLS_PSK_WITH_NULL_SHA
  *
  * Uncomment this macro to enable the NULL cipher and ciphersuites
+#define POLARSSL_CIPHER_NULL_CIPHER
  */
-//#define POLARSSL_CIPHER_NULL_CIPHER
 
 /**
  * \def POLARSSL_CIPHER_PADDING_XXX
@@ -239,14 +240,14 @@
  *      TLS_DHE_RSA_WITH_DES_CBC_SHA
  *
  * Uncomment this macro to enable weak ciphersuites
+#define POLARSSL_ENABLE_WEAK_CIPHERSUITES
  */
-//#define POLARSSL_ENABLE_WEAK_CIPHERSUITES
 
 /**
  * \def POLARSSL_ECP_XXXX_ENABLED
  *
  * Enables specific curves within the Elliptic Curve module.
- * By default all supported curves are enables.
+ * By default all supported curves are enabled.
  *
  * Comment macros to disable the curve and functions for it
  */
@@ -260,20 +261,35 @@
 #define POLARSSL_ECP_DP_BP512R1_ENABLED
 
 /**
+ * \def POLARSSL_ECP_NIST_OPTIM
+ *
+ * Enable specific 'modulo p' routines for each NIST prime.
+ * Depending on the prime and architecture, makes operations 4 to 8 times
+ * faster on the corresponding curve.
+ *
+ * Comment this macro to disable NIST curves optimisation.
+ */
+#define POLARSSL_ECP_NIST_OPTIM
+
+/**
  * \def POLARSSL_KEY_EXCHANGE_PSK_ENABLED
  *
  * Enable the PSK based ciphersuite modes in SSL / TLS.
  *
  * This enables the following ciphersuites (if other requisites are
  * enabled as well):
- *      TLS_PSK_WITH_RC4_128_SHA
- *      TLS_PSK_WITH_3DES_EDE_CBC_SHA
- *      TLS_PSK_WITH_AES_128_CBC_SHA
- *      TLS_PSK_WITH_AES_256_CBC_SHA
- *      TLS_PSK_WITH_AES_128_CBC_SHA256
- *      TLS_PSK_WITH_AES_256_CBC_SHA384
- *      TLS_PSK_WITH_AES_128_GCM_SHA256
  *      TLS_PSK_WITH_AES_256_GCM_SHA384
+ *      TLS_PSK_WITH_AES_256_CBC_SHA384
+ *      TLS_PSK_WITH_AES_256_CBC_SHA
+ *      TLS_PSK_WITH_CAMELLIA_256_GCM_SHA384
+ *      TLS_PSK_WITH_CAMELLIA_256_CBC_SHA384
+ *      TLS_PSK_WITH_AES_128_GCM_SHA256
+ *      TLS_PSK_WITH_AES_128_CBC_SHA256
+ *      TLS_PSK_WITH_AES_128_CBC_SHA
+ *      TLS_PSK_WITH_CAMELLIA_128_GCM_SHA256
+ *      TLS_PSK_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_PSK_WITH_3DES_EDE_CBC_SHA
+ *      TLS_PSK_WITH_RC4_128_SHA
  */
 #define POLARSSL_KEY_EXCHANGE_PSK_ENABLED
 
@@ -286,14 +302,18 @@
  *
  * This enables the following ciphersuites (if other requisites are
  * enabled as well):
- *      TLS_DHE_PSK_WITH_RC4_128_SHA
- *      TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA
- *      TLS_DHE_PSK_WITH_AES_128_CBC_SHA
- *      TLS_DHE_PSK_WITH_AES_256_CBC_SHA
- *      TLS_DHE_PSK_WITH_AES_128_CBC_SHA256
- *      TLS_DHE_PSK_WITH_AES_256_CBC_SHA384
- *      TLS_DHE_PSK_WITH_AES_128_GCM_SHA256
  *      TLS_DHE_PSK_WITH_AES_256_GCM_SHA384
+ *      TLS_DHE_PSK_WITH_AES_256_CBC_SHA384
+ *      TLS_DHE_PSK_WITH_AES_256_CBC_SHA
+ *      TLS_DHE_PSK_WITH_CAMELLIA_256_GCM_SHA384
+ *      TLS_DHE_PSK_WITH_CAMELLIA_256_CBC_SHA384
+ *      TLS_DHE_PSK_WITH_AES_128_GCM_SHA256
+ *      TLS_DHE_PSK_WITH_AES_128_CBC_SHA256
+ *      TLS_DHE_PSK_WITH_AES_128_CBC_SHA
+ *      TLS_DHE_PSK_WITH_CAMELLIA_128_GCM_SHA256
+ *      TLS_DHE_PSK_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA
+ *      TLS_DHE_PSK_WITH_RC4_128_SHA
  */
 #define POLARSSL_KEY_EXCHANGE_DHE_PSK_ENABLED
 
@@ -306,14 +326,14 @@
  *
  * This enables the following ciphersuites (if other requisites are
  * enabled as well):
- *      TLS_ECDHE_PSK_WITH_RC4_128_SHA
- *      TLS_ECDHE_PSK_WITH_3DES_EDE_CBC_SHA
- *      TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA
- *      TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA
- *      TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256
  *      TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384
- *      TLS_ECDHE_PSK_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA
  *      TLS_ECDHE_PSK_WITH_CAMELLIA_256_CBC_SHA384
+ *      TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256
+ *      TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA
+ *      TLS_ECDHE_PSK_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_ECDHE_PSK_WITH_3DES_EDE_CBC_SHA
+ *      TLS_ECDHE_PSK_WITH_RC4_128_SHA
  */
 #define POLARSSL_KEY_EXCHANGE_ECDHE_PSK_ENABLED
 
@@ -327,14 +347,18 @@
  *
  * This enables the following ciphersuites (if other requisites are
  * enabled as well):
- *      TLS_RSA_PSK_WITH_RC4_128_SHA
- *      TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA
- *      TLS_RSA_PSK_WITH_AES_128_CBC_SHA
- *      TLS_RSA_PSK_WITH_AES_256_CBC_SHA
- *      TLS_RSA_PSK_WITH_AES_128_CBC_SHA256
- *      TLS_RSA_PSK_WITH_AES_256_CBC_SHA384
- *      TLS_RSA_PSK_WITH_AES_128_GCM_SHA256
  *      TLS_RSA_PSK_WITH_AES_256_GCM_SHA384
+ *      TLS_RSA_PSK_WITH_AES_256_CBC_SHA384
+ *      TLS_RSA_PSK_WITH_AES_256_CBC_SHA
+ *      TLS_RSA_PSK_WITH_CAMELLIA_256_GCM_SHA384
+ *      TLS_RSA_PSK_WITH_CAMELLIA_256_CBC_SHA384
+ *      TLS_RSA_PSK_WITH_AES_128_GCM_SHA256
+ *      TLS_RSA_PSK_WITH_AES_128_CBC_SHA256
+ *      TLS_RSA_PSK_WITH_AES_128_CBC_SHA
+ *      TLS_RSA_PSK_WITH_CAMELLIA_128_GCM_SHA256
+ *      TLS_RSA_PSK_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA
+ *      TLS_RSA_PSK_WITH_RC4_128_SHA
  */
 #define POLARSSL_KEY_EXCHANGE_RSA_PSK_ENABLED
 
@@ -348,19 +372,21 @@
  *
  * This enables the following ciphersuites (if other requisites are
  * enabled as well):
- *      TLS_RSA_WITH_AES_128_CBC_SHA
- *      TLS_RSA_WITH_AES_256_CBC_SHA
- *      TLS_RSA_WITH_AES_128_CBC_SHA256
- *      TLS_RSA_WITH_AES_256_CBC_SHA256
- *      TLS_RSA_WITH_AES_128_GCM_SHA256
  *      TLS_RSA_WITH_AES_256_GCM_SHA384
- *      TLS_RSA_WITH_RC4_128_MD5
- *      TLS_RSA_WITH_RC4_128_SHA
- *      TLS_RSA_WITH_CAMELLIA_128_CBC_SHA
- *      TLS_RSA_WITH_CAMELLIA_256_CBC_SHA
- *      TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_RSA_WITH_AES_256_CBC_SHA256
+ *      TLS_RSA_WITH_AES_256_CBC_SHA
+ *      TLS_RSA_WITH_CAMELLIA_256_GCM_SHA384
  *      TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256
+ *      TLS_RSA_WITH_CAMELLIA_256_CBC_SHA
+ *      TLS_RSA_WITH_AES_128_GCM_SHA256
+ *      TLS_RSA_WITH_AES_128_CBC_SHA256
+ *      TLS_RSA_WITH_AES_128_CBC_SHA
+ *      TLS_RSA_WITH_CAMELLIA_128_GCM_SHA256
+ *      TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_RSA_WITH_CAMELLIA_128_CBC_SHA
  *      TLS_RSA_WITH_3DES_EDE_CBC_SHA
+ *      TLS_RSA_WITH_RC4_128_SHA
+ *      TLS_RSA_WITH_RC4_128_MD5
  */
 #define POLARSSL_KEY_EXCHANGE_RSA_ENABLED
 
@@ -374,14 +400,18 @@
  *
  * This enables the following ciphersuites (if other requisites are
  * enabled as well):
- *      TLS_DHE_RSA_WITH_AES_128_CBC_SHA
- *      TLS_DHE_RSA_WITH_AES_256_CBC_SHA
- *      TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+ *      TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
  *      TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
- *      TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA
- *      TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA
- *      TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+ *      TLS_DHE_RSA_WITH_CAMELLIA_256_GCM_SHA384
  *      TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256
+ *      TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA
+ *      TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+ *      TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+ *      TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+ *      TLS_DHE_RSA_WITH_CAMELLIA_128_GCM_SHA256
+ *      TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA
  *      TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA
  */
 #define POLARSSL_KEY_EXCHANGE_DHE_RSA_ENABLED
@@ -396,16 +426,18 @@
  *
  * This enables the following ciphersuites (if other requisites are
  * enabled as well):
- *      TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
- *      TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
- *      TLS_ECDHE_RSA_WITH_RC4_128_SHA
- *      TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
- *      TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
- *      TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
- *      TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
  *      TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
- *      TLS_ECDHE_RSA_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+ *      TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+ *      TLS_ECDHE_RSA_WITH_CAMELLIA_256_GCM_SHA384
  *      TLS_ECDHE_RSA_WITH_CAMELLIA_256_CBC_SHA384
+ *      TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+ *      TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+ *      TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+ *      TLS_ECDHE_RSA_WITH_CAMELLIA_128_GCM_SHA256
+ *      TLS_ECDHE_RSA_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
+ *      TLS_ECDHE_RSA_WITH_RC4_128_SHA
  */
 #define POLARSSL_KEY_EXCHANGE_ECDHE_RSA_ENABLED
 
@@ -418,16 +450,18 @@
  *
  * This enables the following ciphersuites (if other requisites are
  * enabled as well):
- *      TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
- *      TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,
- *      TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
- *      TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
- *      TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
- *      TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,
- *      TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
- *      TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
- *      TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_CBC_SHA256,
- *      TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_CBC_SHA384,
+ *      TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+ *      TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+ *      TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+ *      TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_GCM_SHA384
+ *      TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_CBC_SHA384
+ *      TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+ *      TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+ *      TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+ *      TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_GCM_SHA256
+ *      TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA
+ *      TLS_ECDHE_ECDSA_WITH_RC4_128_SHA
  */
 #define POLARSSL_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
 
@@ -658,7 +692,7 @@
  *
  * Enable support for TLS 1.2.
  *
- * Requires: POLARSSL_SHA256_C or POLARSSL_SHA512_C
+ * Requires: POLARSSL_SHA1_C or POLARSSL_SHA256_C or POLARSSL_SHA512_C
  *           (Depends on ciphersuites)
  *
  * Comment this macro to disable support for TLS 1.2
@@ -787,20 +821,52 @@
  *
  * This module enables the following ciphersuites (if other requisites are
  * enabled as well):
- *      TLS_RSA_WITH_AES_128_CBC_SHA
- *      TLS_RSA_WITH_AES_256_CBC_SHA
- *      TLS_DHE_RSA_WITH_AES_128_CBC_SHA
- *      TLS_DHE_RSA_WITH_AES_256_CBC_SHA
- *      TLS_RSA_WITH_AES_128_CBC_SHA256
- *      TLS_RSA_WITH_AES_256_CBC_SHA256
- *      TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+ *      TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+ *      TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+ *      TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+ *      TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+ *      TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
  *      TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
- *      TLS_RSA_WITH_AES_128_GCM_SHA256
- *      TLS_RSA_WITH_AES_256_GCM_SHA384
- *      TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+ *      TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
  *      TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
- *      TLS_PSK_WITH_AES_128_CBC_SHA
+ *      TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+ *      TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+ *      TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+ *      TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+ *      TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+ *      TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+ *      TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+ *      TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+ *      TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+ *      TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+ *      TLS_DHE_PSK_WITH_AES_256_GCM_SHA384
+ *      TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384
+ *      TLS_DHE_PSK_WITH_AES_256_CBC_SHA384
+ *      TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA
+ *      TLS_DHE_PSK_WITH_AES_256_CBC_SHA
+ *      TLS_DHE_PSK_WITH_AES_128_GCM_SHA256
+ *      TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256
+ *      TLS_DHE_PSK_WITH_AES_128_CBC_SHA256
+ *      TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA
+ *      TLS_DHE_PSK_WITH_AES_128_CBC_SHA
+ *      TLS_RSA_WITH_AES_256_GCM_SHA384
+ *      TLS_RSA_WITH_AES_256_CBC_SHA256
+ *      TLS_RSA_WITH_AES_256_CBC_SHA
+ *      TLS_RSA_WITH_AES_128_GCM_SHA256
+ *      TLS_RSA_WITH_AES_128_CBC_SHA256
+ *      TLS_RSA_WITH_AES_128_CBC_SHA
+ *      TLS_RSA_PSK_WITH_AES_256_GCM_SHA384
+ *      TLS_RSA_PSK_WITH_AES_256_CBC_SHA384
+ *      TLS_RSA_PSK_WITH_AES_256_CBC_SHA
+ *      TLS_RSA_PSK_WITH_AES_128_GCM_SHA256
+ *      TLS_RSA_PSK_WITH_AES_128_CBC_SHA256
+ *      TLS_RSA_PSK_WITH_AES_128_CBC_SHA
+ *      TLS_PSK_WITH_AES_256_GCM_SHA384
+ *      TLS_PSK_WITH_AES_256_CBC_SHA384
  *      TLS_PSK_WITH_AES_256_CBC_SHA
+ *      TLS_PSK_WITH_AES_128_GCM_SHA256
+ *      TLS_PSK_WITH_AES_128_CBC_SHA256
+ *      TLS_PSK_WITH_AES_128_CBC_SHA
  *
  * PEM_PARSE uses AES for decrypting encrypted keys.
  */
@@ -816,9 +882,13 @@
  *
  * This module enables the following ciphersuites (if other requisites are
  * enabled as well):
- *      TLS_RSA_WITH_RC4_128_MD5
- *      TLS_RSA_WITH_RC4_128_SHA
+ *      TLS_ECDHE_ECDSA_WITH_RC4_128_SHA
  *      TLS_ECDHE_RSA_WITH_RC4_128_SHA
+ *      TLS_ECDHE_PSK_WITH_RC4_128_SHA
+ *      TLS_DHE_PSK_WITH_RC4_128_SHA
+ *      TLS_RSA_WITH_RC4_128_SHA
+ *      TLS_RSA_WITH_RC4_128_MD5
+ *      TLS_RSA_PSK_WITH_RC4_128_SHA
  *      TLS_PSK_WITH_RC4_128_SHA
  */
 #define POLARSSL_ARC4_C
@@ -897,14 +967,40 @@
  *
  * This module enables the following ciphersuites (if other requisites are
  * enabled as well):
- *      TLS_RSA_WITH_CAMELLIA_128_CBC_SHA
- *      TLS_RSA_WITH_CAMELLIA_256_CBC_SHA
- *      TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA
- *      TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA
- *      TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256
- *      TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256
- *      TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_GCM_SHA384
+ *      TLS_ECDHE_RSA_WITH_CAMELLIA_256_GCM_SHA384
+ *      TLS_DHE_RSA_WITH_CAMELLIA_256_GCM_SHA384
+ *      TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_CBC_SHA384
+ *      TLS_ECDHE_RSA_WITH_CAMELLIA_256_CBC_SHA384
  *      TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256
+ *      TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA
+ *      TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_GCM_SHA256
+ *      TLS_ECDHE_RSA_WITH_CAMELLIA_128_GCM_SHA256
+ *      TLS_DHE_RSA_WITH_CAMELLIA_128_GCM_SHA256
+ *      TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_ECDHE_RSA_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA
+ *      TLS_DHE_PSK_WITH_CAMELLIA_256_GCM_SHA384
+ *      TLS_ECDHE_PSK_WITH_CAMELLIA_256_CBC_SHA384
+ *      TLS_DHE_PSK_WITH_CAMELLIA_256_CBC_SHA384
+ *      TLS_DHE_PSK_WITH_CAMELLIA_128_GCM_SHA256
+ *      TLS_DHE_PSK_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_ECDHE_PSK_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_RSA_WITH_CAMELLIA_256_GCM_SHA384
+ *      TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256
+ *      TLS_RSA_WITH_CAMELLIA_256_CBC_SHA
+ *      TLS_RSA_WITH_CAMELLIA_128_GCM_SHA256
+ *      TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_RSA_WITH_CAMELLIA_128_CBC_SHA
+ *      TLS_RSA_PSK_WITH_CAMELLIA_256_GCM_SHA384
+ *      TLS_RSA_PSK_WITH_CAMELLIA_256_CBC_SHA384
+ *      TLS_RSA_PSK_WITH_CAMELLIA_128_GCM_SHA256
+ *      TLS_RSA_PSK_WITH_CAMELLIA_128_CBC_SHA256
+ *      TLS_PSK_WITH_CAMELLIA_256_GCM_SHA384
+ *      TLS_PSK_WITH_CAMELLIA_256_CBC_SHA384
+ *      TLS_PSK_WITH_CAMELLIA_128_GCM_SHA256
+ *      TLS_PSK_WITH_CAMELLIA_128_CBC_SHA256
  */
 #define POLARSSL_CAMELLIA_C
 
@@ -915,6 +1011,8 @@
  *
  * Module:  library/certs.c
  * Caller:
+ *
+ * Requires: POLARSSL_PEM_PARSE_C
  *
  * This module is used for testing (ssl_client/server).
  */
@@ -971,9 +1069,13 @@
  *
  * This module enables the following ciphersuites (if other requisites are
  * enabled as well):
- *      TLS_RSA_WITH_3DES_EDE_CBC_SHA
- *      TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA
+ *      TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA
  *      TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
+ *      TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA
+ *      TLS_ECDHE_PSK_WITH_3DES_EDE_CBC_SHA
+ *      TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA
+ *      TLS_RSA_WITH_3DES_EDE_CBC_SHA
+ *      TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA
  *      TLS_PSK_WITH_3DES_EDE_CBC_SHA
  *
  * PEM_PARSE uses DES/3DES for decrypting encrypted keys.
@@ -983,26 +1085,14 @@
 /**
  * \def POLARSSL_DHM_C
  *
- * Enable the Diffie-Hellman-Merkle key exchange.
+ * Enable the Diffie-Hellman-Merkle module.
  *
  * Module:  library/dhm.c
  * Caller:  library/ssl_cli.c
  *          library/ssl_srv.c
  *
- * This module enables the following ciphersuites (if other requisites are
- * enabled as well):
- *      TLS_DHE_RSA_WITH_DES_CBC_SHA
- *      TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA
- *      TLS_DHE_RSA_WITH_AES_128_CBC_SHA
- *      TLS_DHE_RSA_WITH_AES_256_CBC_SHA
- *      TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
- *      TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
- *      TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA
- *      TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA
- *      TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256
- *      TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256
- *      TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
- *      TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+ * This module is used by the following key exchanges:
+ *      DHE-RSA, DHE-PSK
  */
 #define POLARSSL_DHM_C
 
@@ -1015,13 +1105,8 @@
  * Caller:  library/ssl_cli.c
  *          library/ssl_srv.c
  *
- * This module enables the following ciphersuites (if other requisites are
- * enabled as well):
- *      TLS_ECDHE_RSA_WITH_NULL_SHA
- *      TLS_ECDHE_RSA_WITH_RC4_128_SHA
- *      TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
- *      TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
- *      TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+ * This module is used by the following key exchanges:
+ *      ECDHE-ECDSA, ECDHE-RSA, DHE-PSK
  *
  * Requires: POLARSSL_ECP_C
  */
@@ -1034,6 +1119,9 @@
  *
  * Module:  library/ecdsa.c
  * Caller:
+ *
+ * This module is used by the following key exchanges:
+ *      ECDHE-ECDSA
  *
  * Requires: POLARSSL_ECP_C, POLARSSL_ASN1_WRITE_C, POLARSSL_ASN1_PARSE_C
  */
@@ -1085,12 +1173,10 @@
  *
  * Module:  library/gcm.c
  *
- * Requires: POLARSSL_AES_C
+ * Requires: POLARSSL_AES_C or POLARSSL_CAMELLIA_C
  *
- * This module enables the following ciphersuites (if other requisites are
- * enabled as well):
- *      TLS_RSA_WITH_AES_128_GCM_SHA256
- *      TLS_RSA_WITH_AES_256_GCM_SHA384
+ * This module enables the AES-GCM and CAMELLIA-GCM ciphersuites, if other
+ * requisites are enabled as well.
  */
 #define POLARSSL_GCM_C
 
@@ -1391,9 +1477,10 @@
  *          library/ssl_tls.c
  *          library/x509.c
  *
- * Requires: POLARSSL_BIGNUM_C, POLARSSL_OID_C
+ * This module is used by the following key exchanges:
+ *      RSA, DHE-RSA, ECDHE-RSA, RSA-PSK
  *
- * This module is required for SSL/TLS and MD5-signed certificates.
+ * Requires: POLARSSL_BIGNUM_C, POLARSSL_OID_C
  */
 #define POLARSSL_RSA_C
 
@@ -1721,12 +1808,16 @@
 /*
  * Sanity checks on defines and dependencies
  */
-#if defined(POLARSSL_DHM_C) && !defined(POLARSSL_BIGNUM_C)
-#error "POLARSSL_DHM_C defined, but not all prerequisites"
+#if defined(POLARSSL_CERTS_C) && !defined(POLARSSL_PEM_PARSE_C)
+#error "POLARSSL_CERTS_C defined, but not all prerequisites"
 #endif
 
 #if defined(POLARSSL_CTR_DRBG_C) && !defined(POLARSSL_AES_C)
 #error "POLARSSL_CTR_DRBG_C defined, but not all prerequisites"
+#endif
+
+#if defined(POLARSSL_DHM_C) && !defined(POLARSSL_BIGNUM_C)
+#error "POLARSSL_DHM_C defined, but not all prerequisites"
 #endif
 
 #if defined(POLARSSL_ECDH_C) && !defined(POLARSSL_ECP_C)
@@ -1740,15 +1831,15 @@
 #error "POLARSSL_ECDSA_C defined, but not all prerequisites"
 #endif
 
-#if defined(POLARSSL_ECP_C) && !defined(POLARSSL_BIGNUM_C) || ( \
-    !defined(POLARSSL_ECP_DP_SECP192R1_ENABLED) &&              \
-    !defined(POLARSSL_ECP_DP_SECP224R1_ENABLED) &&              \
-    !defined(POLARSSL_ECP_DP_SECP256R1_ENABLED) &&              \
-    !defined(POLARSSL_ECP_DP_SECP384R1_ENABLED) &&              \
-    !defined(POLARSSL_ECP_DP_SECP521R1_ENABLED) &&              \
-    !defined(POLARSSL_ECP_DP_BP256R1_ENABLED)   &&              \
-    !defined(POLARSSL_ECP_DP_BP384R1_ENABLED)   &&              \
-    !defined(POLARSSL_ECP_DP_BP512R1_ENABLED) )
+#if defined(POLARSSL_ECP_C) && ( !defined(POLARSSL_BIGNUM_C) || (   \
+    !defined(POLARSSL_ECP_DP_SECP192R1_ENABLED) &&                  \
+    !defined(POLARSSL_ECP_DP_SECP224R1_ENABLED) &&                  \
+    !defined(POLARSSL_ECP_DP_SECP256R1_ENABLED) &&                  \
+    !defined(POLARSSL_ECP_DP_SECP384R1_ENABLED) &&                  \
+    !defined(POLARSSL_ECP_DP_SECP521R1_ENABLED) &&                  \
+    !defined(POLARSSL_ECP_DP_BP256R1_ENABLED)   &&                  \
+    !defined(POLARSSL_ECP_DP_BP384R1_ENABLED)   &&                  \
+    !defined(POLARSSL_ECP_DP_BP512R1_ENABLED) ) )
 #error "POLARSSL_ECP_C defined, but not all prerequisites"
 #endif
 
@@ -1765,7 +1856,8 @@
 #error "CTR_DRBG_ENTROPY_LEN value too high"
 #endif
 
-#if defined(POLARSSL_GCM_C) && !defined(POLARSSL_AES_C)
+#if defined(POLARSSL_GCM_C) && (                                        \
+        !defined(POLARSSL_AES_C) && !defined(POLARSSL_CAMELLIA_C) )
 #error "POLARSSL_GCM_C defined, but not all prerequisites"
 #endif
 
@@ -1843,6 +1935,26 @@
 #if defined(POLARSSL_RSA_C) && ( !defined(POLARSSL_BIGNUM_C) ||         \
     !defined(POLARSSL_OID_C) )
 #error "POLARSSL_RSA_C defined, but not all prerequisites"
+#endif
+
+#if defined(POLARSSL_SSL_PROTO_SSL3) && ( !defined(POLARSSL_MD5_C) ||     \
+    !defined(POLARSSL_SHA1_C) )
+#error "POLARSSL_SSL_PROTO_SSL3 defined, but not all prerequisites"
+#endif
+
+#if defined(POLARSSL_SSL_PROTO_TLS1) && ( !defined(POLARSSL_MD5_C) ||     \
+    !defined(POLARSSL_SHA1_C) )
+#error "POLARSSL_SSL_PROTO_TLS1 defined, but not all prerequisites"
+#endif
+
+#if defined(POLARSSL_SSL_PROTO_TLS1_1) && ( !defined(POLARSSL_MD5_C) ||     \
+    !defined(POLARSSL_SHA1_C) )
+#error "POLARSSL_SSL_PROTO_TLS1_1 defined, but not all prerequisites"
+#endif
+
+#if defined(POLARSSL_SSL_PROTO_TLS1_2) && ( !defined(POLARSSL_SHA1_C) &&     \
+    !defined(POLARSSL_SHA256_C) && !defined(POLARSSL_SHA512_C) )
+#error "POLARSSL_SSL_PROTO_TLS1_2 defined, but not all prerequisites"
 #endif
 
 #if defined(POLARSSL_SSL_CLI_C) && !defined(POLARSSL_SSL_TLS_C)

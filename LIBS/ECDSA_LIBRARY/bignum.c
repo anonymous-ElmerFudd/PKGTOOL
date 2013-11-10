@@ -788,7 +788,7 @@ cleanup:
 }
 
 /*
- * Helper for mpi substraction
+ * Helper for mpi subtraction
  */
 static void mpi_sub_hlp( size_t n, t_uint *s, t_uint *d )
 {
@@ -809,7 +809,7 @@ static void mpi_sub_hlp( size_t n, t_uint *s, t_uint *d )
 }
 
 /*
- * Unsigned substraction: X = |A| - |B|  (HAC 14.9)
+ * Unsigned subtraction: X = |A| - |B|  (HAC 14.9)
  */
 int mpi_sub_abs( mpi *X, const mpi *A, const mpi *B )
 {
@@ -832,7 +832,7 @@ int mpi_sub_abs( mpi *X, const mpi *A, const mpi *B )
         MPI_CHK( mpi_copy( X, A ) );
 
     /*
-     * X should always be positive as a result of unsigned substractions.
+     * X should always be positive as a result of unsigned subtractions.
      */
     X->s = 1;
 
@@ -883,7 +883,7 @@ cleanup:
 }
 
 /*
- * Signed substraction: X = A - B
+ * Signed subtraction: X = A - B
  */
 int mpi_sub_mpi( mpi *X, const mpi *A, const mpi *B )
 {
@@ -930,7 +930,7 @@ int mpi_add_int( mpi *X, const mpi *A, t_sint b )
 }
 
 /*
- * Signed substraction: X = A - b
+ * Signed subtraction: X = A - b
  */
 int mpi_sub_int( mpi *X, const mpi *A, t_sint b )
 {
@@ -1493,7 +1493,7 @@ int mpi_exp_mod( mpi *X, const mpi *A, const mpi *E, const mpi *N, mpi *_RR )
 
         for( i = 0; i < wsize - 1; i++ )
             mpi_montmul( &W[j], &W[j], N, mm, &T );
-    
+
         /*
          * W[i] = W[i - 1] * W[1]
          */
@@ -1516,8 +1516,10 @@ int mpi_exp_mod( mpi *X, const mpi *A, const mpi *E, const mpi *N, mpi *_RR )
     {
         if( bufsize == 0 )
         {
-            if( nblimbs-- == 0 )
+            if( nblimbs == 0 )
                 break;
+
+            nblimbs--;
 
             bufsize = sizeof( t_uint ) << 3;
         }
