@@ -121,11 +121,15 @@ typedef struct _rif
 	u8 signature[40];
 } rif_t;
 
-void _print_key_list(FILE *fp);
-
+// funcs. for key loading/finding
+void __stdcall _print_key_list(FILE *fp);
 BOOL __stdcall keys_load(const s8 *kfile);
 keyset_t* __stdcall keyset_find(sce_buffer_ctxt_t *ctxt);
 keyset_t* __stdcall keyset_find_by_name(const s8 *name);
+keyset_t* __stdcall _keyset_find_for_self(u32 self_type, u16 key_revision, u64 version);
+keyset_t* __stdcall _keyset_find_for_rvk(u32 key_revision);
+keyset_t* __stdcall _keyset_find_for_pkg(u16 key_revision);
+keyset_t* __stdcall _keyset_find_for_spp(u16 key_revision);
 
 BOOL __stdcall curves_load(const s8 *cfile);
 curve_t* __stdcall curve_find(u8 ctype);
