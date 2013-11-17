@@ -19,7 +19,8 @@ extern "C" {
 
 
 // decrypt spkg
-int decrypt_spkg(u8* pInSpkg, u64* pDecSize);
+int decrypt_spkg(u8* pInSpkg, u64* pDecSize, char* pKeyName);
+int do_spkg_decrypt(char* pInPath, char* pOutPath, char* pKeyName);
 
 
 

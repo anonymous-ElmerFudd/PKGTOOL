@@ -15,6 +15,21 @@
 
 
 
+
+
+/////////////////////////////////////
+// define internal/external globals
+//
+extern uint8_t b_DebugModeEnabled;
+extern uint8_t b_DefaultKeyListOverride;
+extern int32_t g_bZlibCompressLevel;
+extern uint8_t b_OverrideFileSize;
+//
+////////////////////////////////////
+
+
+
+
 // struct for capturing the 'files' info
 struct pkg_file {
 	char name[SIZE_COSPKG_FILERECORD_FILENAME];
@@ -212,7 +227,7 @@ exit:
 }
 
 // func. to build the cos pkg hdr
-int build_hdr(u8** ppCosHdr, u32* pHdrSize, u32 NumFiles)
+int build_hdr(u8** ppCosHdr, u32* pHdrSize, u32 NumFiles, u64 OverrideFileSize, u64* pPaddSize)
 {
 	u8 *ptr = NULL;
 	u32 i = 0;
@@ -224,13 +239,35 @@ int build_hdr(u8** ppCosHdr, u32* pHdrSize, u32 NumFiles)
 
 
 	// validate input params
-	if ( (ppCosHdr == NULL) || (pHdrSize == NULL) )
+	if ( (ppCosHdr == NULL) || (pHdrSize == NULL) || (pPaddSize == NULL) )
 		goto exit;
 
 	// calculate the final 'filesize' and the hdr size
 	file_size = (cos_files[NumFiles - 1].offset) + (cos_files[NumFiles - 1].size);
 	*pHdrSize = sizeof(COS_PKG_HDR) + (NumFiles * sizeof(COS_PKG_FILE_RECORD));
-
+		
+	// if the 'OverrideFileSize' is valid, fix the 'filesize'
+	// in the COS header	
+	if ( b_OverrideFileSize == TRUE)	
+	{
+		if (OverrideFileSize > (file_size + *pHdrSize))
+		{
+			if (b_DebugModeEnabled)
+				printf("RE-SIZED COS 'content' file to override size:0x%x\n", OverrideFileSize);
+			// calculate the new sizes
+			*pPaddSize = (OverrideFileSize - *pHdrSize) - file_size;
+			file_size = (OverrideFileSize - *pHdrSize);
+		}
+		// otherwise, if our 'override' file size is smaller than our current size,
+		// we have a 'fatal' error, and must exit out
+		else if (OverrideFileSize < (file_size + *pHdrSize)) {
+			printf("ERROR:  Attempted to resize COS 'content' file with invalid size:0x%x, exiting!\n", OverrideFileSize);
+			goto exit;
+		}
+		else if (OverrideFileSize == (file_size + *pHdrSize)) {
+			printf("Original COS 'Content' size is already sized properly, re-size not required...\n");
+		}
+	}
 	// alloc memory for the hdr
 	*ppCosHdr =  (u8*)calloc(*pHdrSize, sizeof(char));
 	if (*ppCosHdr == NULL) {
@@ -265,8 +302,9 @@ exit:
 }
 
 // func. to write out the pkg file
-int write_pkg(u8* pCosHdr, const char *pOutFile, u32 HdrSize, u32 NumFiles)
+int write_pkg(u8* pCosHdr, const char *pOutFile, u32 HdrSize, u32 NumFiles, u64 PaddSize)
 {	
+	u8* pTmpBuffer = NULL;
 	u32 i = 0;	
 	int retval = -1;
 
@@ -291,10 +329,34 @@ int write_pkg(u8* pCosHdr, const char *pOutFile, u32 HdrSize, u32 NumFiles)
 			goto exit;
 		}
 	}
+	// if we are 'overriding' the file size, then padd the 
+	// file with data if necessary
+	if (b_OverrideFileSize == TRUE) {
+		if (PaddSize > 0)
+		{
+			pTmpBuffer = (u8*)calloc((size_t)PaddSize, sizeof(char));
+			if (pTmpBuffer == NULL) {
+				printf("Error: Memory allocation failed\n");
+				goto exit;
+			}
+
+			// write out the zero-padding buffer to final output file,
+			// APPENDING to file 'EOF'
+			if ( WriteBufferToFile((char*)pOutFile, (uint8_t*)pTmpBuffer, (uint32_t)PaddSize, TRUE, 0, NULL) != STATUS_SUCCESS )			{
+				printf("Failed padding final file:%s, exiting...\n", pOutFile);
+				goto exit;
+			}
+		}
+	} // end IF (b_Overridefilesize...)
+
 	// status success
 	retval = STATUS_SUCCESS;
 
-exit:	
+exit:
+	// free any alloc'd memory
+	if (pTmpBuffer != NULL)
+		free(pTmpBuffer);
+
 	// return our final status
 	return retval;
 }
@@ -302,12 +364,13 @@ exit:
 /******************************************************************************************************************/
 
 // main function to build the COS pkg
-int create_cos_pkg(char* pInPath, char* pOutFile) 
+int create_cos_pkg(char* pInPath, char* pOutFile, u64 OverrideFileSize) 
 {	
 	u32 i = 0;
 	u8* pCosHdr = NULL;
 	u32 HdrSize = 0;
 	u32 NumFiles = 0;
+	u64 PaddSize = 0;
 	int retval = -1;
 
 
@@ -320,11 +383,11 @@ int create_cos_pkg(char* pInPath, char* pOutFile)
 		goto exit;
 
 	// build the final COS PKG 'HDR'
-	if ( build_hdr(&pCosHdr, &HdrSize, NumFiles) != STATUS_SUCCESS )
+	if ( build_hdr(&pCosHdr, &HdrSize, NumFiles, OverrideFileSize, &PaddSize) != STATUS_SUCCESS )
 		goto exit;
 
 	// write out the final pkg file
-	if ( write_pkg(pCosHdr, pOutFile, HdrSize, NumFiles) != STATUS_SUCCESS )
+	if ( write_pkg(pCosHdr, pOutFile, HdrSize, NumFiles, PaddSize) != STATUS_SUCCESS )
 		goto exit;
 
 	// status success
@@ -341,6 +404,57 @@ exit:
 	}
 
 	return retval;
+}
+/**/
+/*************************************************************************************/
+
+
+// main function for 'unpacking' COS files
+int do_unpack_cos_package(char* pInPath, char* pOutPath)
+{
+	u8* pMyPkg = NULL;
+	u32 dwBytesRead = 0;
+	int retval = -1;
+
+
+
+
+	// validate input params
+	if ( (pInPath == NULL) || (pOutPath == NULL) )
+		goto exit;
+
+	// create the target directory, if CreateDir
+	// failed, see if the dir already exists.  If so,
+	// we can continue...
+	if ( CreateDirectory(pOutPath, NULL) == 0 ) {
+		if ( GetLastError() != ERROR_ALREADY_EXISTS ) {
+			printf("failed to create output directory:%s, exiting...\n", pOutPath);
+			goto exit;
+		}
+	}
+
+	// read the COS file to a buffer (alloc buffer)
+	if ( ReadFileToBuffer(pInPath,(uint8_t**)&pMyPkg, 0x00, &dwBytesRead, TRUE) != STATUS_SUCCESS ) {
+		printf("failed to read in file:%s, exiting...\n", pInPath);
+		goto exit;
+	}
+
+	// extract out the COS.pkg files
+	if ( unpack_cos_pkg(pMyPkg, pOutPath) != STATUS_SUCCESS ) {
+		printf("failed to unpack cos file:%s, exiting\n", pOutPath );
+		goto exit;		
+	}
+
+	// status success
+	retval = STATUS_SUCCESS;
+
+exit:
+	// free any alloc'd memory
+	if (pMyPkg != NULL)
+		free(pMyPkg);
+
+	return retval;
+
 }
 /**/
 /*************************************************************************************/

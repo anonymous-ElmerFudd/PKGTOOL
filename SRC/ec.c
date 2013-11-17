@@ -310,6 +310,7 @@ static void ec_priv_to_pub(u8 *k, u8 *Q)
 }
 #endif
 
+// setup the ECDSA curve
 int ecdsa_set_curve_org(u32 type)
 {
 	if (ecdsa_get_params(type, ec_p, ec_a, ec_b, ec_N, ec_G.x, ec_G.y) < 0)

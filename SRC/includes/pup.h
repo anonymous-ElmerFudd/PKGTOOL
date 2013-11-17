@@ -28,7 +28,7 @@ int write_pup(u8* pInPupHdr, char* pOutPath, u32 num_files);
 
 /// "unpack" functions
 int check_hmac(u8 *pMyHmacKey, u8* pMyOrgHmac, u8 *bfr, u64 len);
-int do_pup_unpack(u8* pInPup, char* pOutPath);
+int do_pup_unpack(char* pInPath, char* pOutPath);
 int do_section(char* pOutPath, u8* pInPup, u8* pMyHmacKey, u64 section_num, u64 num_sections);
 int find_hmac(u8* pInPup, u8** ppHmacPtr, u64 entry, u64 num_sections);
 

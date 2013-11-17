@@ -29,8 +29,8 @@ TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
 		   .\libs\file_functions.lib \
 		   .\libs\sha1.lib \
 		   .\libs\zlib.lib \
-		   .\libs\ecdsa.lib
-		   
+		   .\libs\ecdsa.lib \
+		   .\libs\sce.lib
 
 SOURCES=bn.c \
 		cos.c \

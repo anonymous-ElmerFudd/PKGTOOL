@@ -253,7 +253,7 @@ BOOL __stdcall keys_load(const s8 *kfile)
 				//Allocate keyset and fill name.
 				cks = (keyset_t *)malloc(sizeof(keyset_t));
 				memset(cks, 0, sizeof(keyset_t));
-				cks->name = strdup(&lbuf[1]);
+				cks->name = _strdup(&lbuf[1]);
 			}
 			else if(cks != NULL)
 			{
@@ -488,13 +488,13 @@ static u8* __stdcall idps_load()
 	u32 len = 0;
 
 	if((ps3 = getenv(CONFIG_ENV_PS3)) != NULL)
-		if(access(ps3, 0) != 0)
+		if(_access_s(ps3, 0) != 0)
 			ps3 = NULL;
 
 	if(ps3 != NULL)
 	{
 		sprintf(path, "%s/%s", ps3, CONFIG_IDPS_FILE);
-		if(access(path, 0) != 0)
+		if(_access_s(path, 0) != 0)
 			sprintf(path, "%s/%s", CONFIG_IDPS_PATH, CONFIG_IDPS_FILE);
 	}
 	else
@@ -521,13 +521,13 @@ static act_dat_t* __stdcall act_dat_load()
 	u32 len = 0;
 	
 	if((ps3 = getenv(CONFIG_ENV_PS3)) != NULL)
-		if(access(ps3, 0) != 0)
+		if(_access_s(ps3, 0) != 0)
 			ps3 = NULL;
 
 	if(ps3 != NULL)
 	{
 		sprintf(path, "%s/%s", ps3, CONFIG_ACT_DAT_FILE);
-		if(access(path, 0) != 0)
+		if(_access_s(path, 0) != 0)
 			sprintf(path, "%s/%s", CONFIG_ACT_DAT_PATH, CONFIG_ACT_DAT_FILE);
 	}
 	else
@@ -554,13 +554,13 @@ static rif_t* __stdcall rif_load(const s8 *content_id)
 	u32 len = 0;
 	
 	if((ps3 = getenv(CONFIG_ENV_PS3)) != NULL)
-		if(access(ps3, 0) != 0)
+		if(_access_s(ps3, 0) != 0)
 			ps3 = NULL;
 
 	if(ps3 != NULL)
 	{
 		sprintf(path, "%s/%s%s", ps3, content_id, CONFIG_RIF_FILE_EXT);
-		if(access(path, 0) != 0)
+		if(_access_s(path, 0) != 0)
 			sprintf(path, "%s/%s%s", CONFIG_RIF_PATH, content_id, CONFIG_RIF_FILE_EXT);
 	}
 	else
@@ -586,13 +586,13 @@ static u8* __stdcall rap_load(const s8 *content_id)
 	u32 len = 0;
 	
 	if((ps3 = getenv(CONFIG_ENV_PS3)) != NULL)
-		if(access(ps3, 0) != 0)
+		if(_access_s(ps3, 0) != 0)
 			ps3 = NULL;
 
 	if(ps3 != NULL)
 	{
 		sprintf(path, "%s/%s%s", ps3, content_id, CONFIG_RAP_FILE_EXT);
-		if(access(path, 0) != 0)
+		if(_access_s(path, 0) != 0)
 			sprintf(path, "%s/%s%s", CONFIG_RAP_PATH, content_id, CONFIG_RAP_FILE_EXT);
 	}
 	else

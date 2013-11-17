@@ -27,7 +27,18 @@ extern "C" {
 
 #define AES256_KEY_SIZE					0x20			// 256-bits
 #define AES128_KEY_SIZE					0x10			// 128-bits
+#define HMAC_KEY_SIZE					0x40			// 512-bits
 
+
+/*  DEFAULT CONFIG SETTINGS FROM 'SCETOOL' */
+#define DEFAULT_PS3KEYS_ENV				"PS3_KEYS"
+/*! Path configurations. */
+#define CONFIG_KEYS_FILE				"keys"
+#define CONFIG_KEYS_PATH				"./data"
+#define CONFIG_CURVES_FILE				"ldr_curves"
+#define CONFIG_CURVES_PATH				"./data"
+#define CONFIG_VSH_CURVES_FILE			"vsh_curves"
+#define CONFIG_VSH_CURVES_PATH			"./data"
 
 
 
@@ -62,8 +73,8 @@ typedef struct _my_ecp_point {
 #define PUP_SCE_HEADER_STRING			"SCEUF\0\0\0"
 #define PUP_SCE_HEADER_MAGIC			0x53434555		// SCEUF
 #define	PUP_MAX_FILES					10
-#define PUP_HMAC_KEY_SIZE				0x40			// 512-bits
 #define PUP_HMAC_RESULT_SIZE			0x14			// 160-bits
+#define PUP_KEYS_ENTRY_NAME				"PUP_hmac_key"
 
 
 // struct define for the PUP HDR
@@ -140,6 +151,8 @@ typedef struct _COS_PKG_FILE_RECORD {
 
 #define SIZE_SPKG_HDR					0x280	
 
+#define SPKG_HDR_NAME					".spkg_hdr.1"
+
 
 #define NUM_PKG_EMBEDDED_FILES			0x03						// num. of expected "files" to extract from a PKG file
 #define NUM_SPKG_METADATA_SECTIONS		0x03						// num. of expected metadata sections in an SPKG
@@ -161,6 +174,18 @@ typedef struct _PKG_FILE_RECORD {
 	u64 unknown3;										// unknown 3
 	u64 unknown4;										// unknown 4
 } PKG_FILE_RECORD;
+
+typedef struct _INFO_FILE_HEADER {	
+	sce_version_t sce_version;							// "SCE Version" structure
+	u32 app_version;									// application version
+	u32 unknown0;
+	u64 file_size_external;								// extracted size of the file
+	u64 file_size_internal;								// internal (pkg'd) size of the file
+	u32 unknown1;
+	u32 unknown2;
+	u64 unknown3;
+	u64 unknown4;
+} INFO_FILE_RECORD;
 
 ////////////////////////////////////////
 // struct for storing the names of the

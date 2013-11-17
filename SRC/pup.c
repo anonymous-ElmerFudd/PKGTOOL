@@ -18,6 +18,7 @@
 #include "tools.h"
 #include "types.h"
 #include "sce.h"
+#include "keys.h"
 
 
 
@@ -159,7 +160,7 @@ int calc_hmac(u8* pHmacSecretKey, u8* pInBuffer, u64 len, u8* pOutHmac)
 		goto exit;
 
 	// calculate the 'sha1_hmac' for the specified block
-	sha1_hmac(pHmacSecretKey, PUP_HMAC_KEY_SIZE, (unsigned char*)pInBuffer, (size_t)len, pOutHmac);
+	sha1_hmac(pHmacSecretKey, HMAC_KEY_SIZE, (unsigned char*)pInBuffer, (size_t)len, pOutHmac);
 
 	// status success
 	retval = STATUS_SUCCESS;
@@ -271,7 +272,8 @@ exit:
 int do_pup_pack(char* pInPath, char* pOutPath, u64 BuildNumber)
 {		
 	u64 total_data_size = 0;
-	u8 pup_hmac_key[PUP_HMAC_KEY_SIZE] = {0};	
+	keyset_t* pPupHmacKey = NULL;
+	u8 pup_hmac_key[HMAC_KEY_SIZE] = {0};	
 	u8 PupHeader[sizeof(SCE_PUP_HDR) + sizeof(SCE_PUP_SECTION_HDR) + (sizeof(SCE_PUP_FILE_RECORD) * PUP_MAX_FILES)] = {0};
 	u32 num_files = 0;
 	u32 i = 0;
@@ -283,11 +285,27 @@ int do_pup_pack(char* pInPath, char* pOutPath, u64 BuildNumber)
 	if ( (pInPath == NULL) || (pOutPath == NULL) )
 		goto exit;
 
-	// got_hmac = key_get_simple("pup-hmac", pup_hmac, sizeof(pup_hmac));
-	if ( key_get_simple("pup-hmac", pup_hmac_key, sizeof(pup_hmac_key)) != STATUS_SUCCESS ) {
-		printf("Error!  Could not locate \"pup-hmac\" key, exiting...\n");
-		goto exit;
-	}	
+	// get the PUP 'HMAC' KEY, first check the 'scetool'
+	// style 'KEYS' file, then default to 'old keys format'
+	pPupHmacKey = keyset_find_by_name(PUP_KEYS_ENTRY_NAME);
+	if (pPupHmacKey != NULL) {
+		if ( memcpy_s(pup_hmac_key, sizeof(pup_hmac_key), pPupHmacKey->erk, sizeof(pup_hmac_key)) != 0 )
+			printf("Error:  Failed attempting to copy 'pup-hmac' key from KEYS file, trying old keys format....\n");
+		else {
+			if (b_DebugModeEnabled == TRUE)
+				printf("Successfully retrieved PUP HMAC key from new 'keys' file\n");
+		}
+	}
+	else {
+		printf("Could not find: PUP-HMAC key in 'KEYS' file, defaulting to old key style..\n");
+		if ( key_get_simple("pup-hmac", pup_hmac_key, sizeof(pup_hmac_key)) != STATUS_SUCCESS ) {
+			printf("Error!  Could not locate \"pup-hmac\" key, exiting...\n");
+			goto exit;
+		}
+		if (b_DebugModeEnabled == TRUE)
+			printf("Successfully retrieved PUP HMAC key from old-method (\'pup-hmac\') file\n");
+	}
+
 	// go find the files for packing
 	if ( find_files(pInPath, &num_files, &total_data_size) != STATUS_SUCCESS ) {
 		printf("Failed to find all files....exiting\n");
@@ -338,7 +356,7 @@ int check_hmac(u8 *pMyHmacKey, u8* pMyOrgHmac, u8 *bfr, u64 len)
 			goto exit;
 	
 	// calculate the 'sha1-hmac' of the section
-	sha1_hmac(pMyHmacKey, PUP_HMAC_KEY_SIZE, (unsigned char*)bfr, (size_t)len, calc);
+	sha1_hmac(pMyHmacKey, HMAC_KEY_SIZE, (unsigned char*)bfr, (size_t)len, calc);
 
 	// compare the hdr hmac value to the calc'd
 	// one, return result of the compare
@@ -461,36 +479,71 @@ exit:
 
 
 // func for unpacking the pup 
-int do_pup_unpack(u8* pInPup, char* pOutPath)
+int do_pup_unpack(char* pInPath, char* pOutPath)
 {
+	u8* pMyPup = NULL;
 	u64 data_size = 0;	
 	u64 n_sections = 0;
 	u64 hdr_size = 0;
-	u8 pup_hmac_key[PUP_HMAC_KEY_SIZE] = {0};		
+	keyset_t* pPupHmacKey = NULL;
+	u8 pup_hmac_key[HMAC_KEY_SIZE] = {0};		
 	SCE_PUP_HDR* pScePupHeader = NULL;
+	u32 dwBytesRead = 0;
 	u64 i = 0;	
 	int retval = -1;
 
 
+
 	// validate input params
-	if ( (pInPup == NULL) || (pOutPath == NULL) )
+	if ( (pInPath == NULL) || (pOutPath == NULL) )
 		goto exit;
 	
-	// got_hmac = key_get_simple("pup-hmac", pup_hmac, sizeof(pup_hmac));
-	 if ( key_get_simple("pup-hmac", pup_hmac_key, sizeof(pup_hmac_key)) != STATUS_SUCCESS ) {
-		 printf("Error!  Could not locate \"pup-hmac\" key, exiting...\n");
-		 goto exit;
-	 }		 	
+	// create the target directory, if CreateDir
+	// failed, see if the dir already exists.  If so,
+	// we can continue...
+	if ( CreateDirectory(pOutPath, NULL) == 0 ) {
+		if ( GetLastError() != ERROR_ALREADY_EXISTS ) {
+			printf("failed to create output directory:%s, exiting...\n", pOutPath);
+			goto exit;
+		}
+	}
+
+	// read the COS file to a buffer (alloc buffer)
+	if ( ReadFileToBuffer(pInPath,(uint8_t**)&pMyPup, 0x00, &dwBytesRead, TRUE) != STATUS_SUCCESS ) {
+		printf("failed to read in file:%s, exiting...\n", pInPath);
+		goto exit;
+	}	
 
 	// verify SCE header magic!
-	if ( verify_sce_header(pInPup) != STATUS_SUCCESS ) {
+	if ( verify_sce_header(pMyPup) != STATUS_SUCCESS ) {
 		printf("SCE Header is not valid for this file!, exiting!\n");
 		goto exit;
 	}
 	
+	// get the PUP 'HMAC' KEY, first check the 'scetool'
+	// style 'KEYS' file, then default to 'old keys format'
+	pPupHmacKey = keyset_find_by_name(PUP_KEYS_ENTRY_NAME);
+	if (pPupHmacKey != NULL) {
+		if ( memcpy_s(pup_hmac_key, sizeof(pup_hmac_key), pPupHmacKey->erk, sizeof(pup_hmac_key)) != 0 )
+			printf("Error:  Failed attempting to copy 'pup-hmac' key from KEYS file, trying old keys format....\n");
+		else {
+			if (b_DebugModeEnabled == TRUE)
+				printf("Successfully retrieved PUP HMAC key from new 'keys' file\n");
+		}
+	}
+	else {
+		printf("Could not find: PUP-HMAC key in 'KEYS' file, defaulting to old key style..\n");
+		if ( key_get_simple("pup-hmac", pup_hmac_key, sizeof(pup_hmac_key)) != STATUS_SUCCESS ) {
+			printf("Error!  Could not locate \"pup-hmac\" key, exiting...\n");
+			goto exit;
+		}	
+		if (b_DebugModeEnabled == TRUE)
+			printf("Successfully retrieved PUP HMAC key from old-method (\'pup-hmac\') file\n");
+	}	
+	
 	// setup the SCE PUP header
 	// calculate data from the hdr
-	pScePupHeader = (SCE_PUP_HDR*)pInPup;
+	pScePupHeader = (SCE_PUP_HDR*)pMyPup;
 	n_sections = be64((u8*)&pScePupHeader->num_sections);
 	hdr_size = be64((u8*)&pScePupHeader->header_size);
 	data_size = be64((u8*)&pScePupHeader->data_size);
@@ -501,12 +554,13 @@ int do_pup_unpack(u8* pInPup, char* pOutPath)
 		printf("hdr size: %08x_%08x\n", (u32)(hdr_size >> 32), (u32)hdr_size);
 		printf("data size: %08x_%08x\n", (u32)(data_size >> 32), (u32)data_size);
 		printf("header hmac:");
-		for (i=0;i<PUP_HMAC_KEY_SIZE;i++)
+		for (i = 0;i < HMAC_KEY_SIZE; i++)
 			printf("%x", pup_hmac_key[i]);
 		printf("\n");
 	}
+
 	// check the hmac of the header, make sure it's valid
-	if ( check_hmac( pup_hmac_key, (pInPup + sizeof(SCE_PUP_HDR) + 0x40 * n_sections), pInPup, (0x30 + 0x40 * n_sections) ) != STATUS_SUCCESS )
+	if ( check_hmac( pup_hmac_key, (pMyPup + sizeof(SCE_PUP_HDR) + 0x40 * n_sections), pMyPup, (0x30 + 0x40 * n_sections) ) != STATUS_SUCCESS )
 	{
 		printf("PUP failed header verification!, exiting..\n");
 		goto exit;
@@ -517,12 +571,16 @@ int do_pup_unpack(u8* pInPup, char* pOutPath)
 	// iterate the pup sections, and extract
 	// the embedded files
 	for (i = 0; i < n_sections; i++)
-			do_section(pOutPath, pInPup, pup_hmac_key, i, n_sections);
+		do_section(pOutPath, pMyPup, pup_hmac_key, i, n_sections);
 
 	// status success
 	retval = STATUS_SUCCESS;
 
 exit:
+	// free the alloc'd memory
+	if (pMyPup != NULL)
+		free(pMyPup);
+
 	return retval;
 }
 /**/

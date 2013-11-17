@@ -38,8 +38,10 @@ extern "C" {
 //#define TOOL_DEBUG
 
 //#define TOOL_DEBUG_TEST_PKG
+//#define TOOL_DEBUG_TEST_SPKG
+
 //#define TOOL_DEBUG_TEST_UNPKG
-//#define TOOL_DEBUG_TEST_UNSPKG
+#define TOOL_DEBUG_TEST_UNSPKG
 
 //#define TOOL_DEBUG_TEST_UNPACK_COS
 //#define TOOL_DEBUG_TEST_PACK_COS
@@ -87,8 +89,14 @@ int aes128(u8 *key, const u8 *in, u8 *out);
 int aes128_enc(u8 *key, const u8 *in, u8 *out);
 
 int key_get(enum sce_key type, const char *suffix, struct key *k);
+int key_get_new(u16 KeyRev, struct key *pInKey);
 int key_get_simple(const char *name, u8 *bfr, u32 len);
 struct keylist *keys_get(enum sce_key type);
+
+int load_keylist_from_key(struct keylist** ppInKeyList, struct key* pInKey);
+int load_singlekey_by_name(char* pKeyName, struct keylist** ppInKeyList);
+int load_all_type_keys(struct keylist** ppInKeyList, u32 keytype);
+int load_keys_files(void);
 
 struct rif *rif_get(const char *content_id);
 struct actdat *actdat_get(void);
