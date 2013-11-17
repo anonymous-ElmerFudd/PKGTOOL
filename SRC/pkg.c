@@ -58,6 +58,7 @@ int get_content(char* filename, u8** ppContent, u64* pContent_size_original, u64
 	u8* pBase = NULL;
 	u8* pNewBase = NULL;
 	uint32_t dwBytesRead = 0;
+	uint32_t MyOverrideFileSize = 0;
 	int retval = -1;
 
 
@@ -76,34 +77,36 @@ int get_content(char* filename, u8** ppContent, u64* pContent_size_original, u64
 		// if the 'OverrideFileSize' is valid, then alloc a new buffer,
 		// copy over the original 'content' data, and adjust ptrs, sizes
 		// accordingly
-		if (OverrideFileSize > dwBytesRead)
+		MyOverrideFileSize = (u32)OverrideFileSize;
+		if (MyOverrideFileSize > dwBytesRead)
 		{
 			// re-alloc our buffer to the new size
-			pNewBase = (u8*)calloc((size_t)OverrideFileSize, sizeof(char));
+			pNewBase = (u8*)calloc((size_t)MyOverrideFileSize, sizeof(char));
 			if (pNewBase == NULL) {
 				printf("Error:  memory allocation failed, exiting!!\n");
 				goto exit;
 			}
 
 			// copy our original file over to the new buffer,			
-			memcpy_s(pNewBase, (rsize_t)OverrideFileSize, pBase, (rsize_t)dwBytesRead);					
+			memcpy_s(pNewBase, (rsize_t)MyOverrideFileSize, pBase, (rsize_t)dwBytesRead);					
 			if (pBase != NULL)
 				free(pBase);			
 			
+			// if 'debug' mode, display the size adjustment msg
+			if (b_DebugModeEnabled)
+				printf("RE-SIZED PKG 'content' file, prev size:0x%x, new size:0x%x\n", dwBytesRead, MyOverrideFileSize);
+
 			// re-assign the ptrs/values
 			pBase = (u8*)pNewBase;				
-			dwBytesRead = (uint32_t)OverrideFileSize;							
-			if (b_DebugModeEnabled)
-				printf("RE-SIZED 'content' file to override size:0x%x\n", OverrideFileSize);
+			dwBytesRead = (uint32_t)MyOverrideFileSize;										
 		}
 		// otherwise, if our 'override' file size is smaller than our current size,
 		// we have a 'fatal' error, and must exit out
-		else if (OverrideFileSize < dwBytesRead) {
-			printf("ERROR:  Attempted to resize 'content' file with invalid size:0x%x, exiting!\n", OverrideFileSize);
-			goto exit;
+		else if (MyOverrideFileSize < dwBytesRead) {
+			printf("!!WARNING!! RE-SIZE ignored, modifed 'content' file size: 0x%x, is LARGER than original size: 0x%x.....\n", dwBytesRead, MyOverrideFileSize);			
 		}
-		else if (OverrideFileSize == dwBytesRead) {
-			printf("Original 'Content' size is already equal to 'override' file size, re-size not required...\n");
+		else if (MyOverrideFileSize == dwBytesRead) {
+			printf("Original 'Content' size: 0x%x, is already equal to 'override' file size, re-size not required...\n", MyOverrideFileSize);
 		}
 
 	}// end IF (b_OverrideFileSize)....

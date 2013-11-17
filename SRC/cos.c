@@ -229,11 +229,12 @@ exit:
 // func. to build the cos pkg hdr
 int build_hdr(u8** ppCosHdr, u32* pHdrSize, u32 NumFiles, u64 OverrideFileSize, u64* pPaddSize)
 {
-	u8 *ptr = NULL;
-	u32 i = 0;
-	u64 file_size = 0;	
+	u8 *ptr = NULL;		
 	COS_PKG_HDR* pCosPkgHdr = NULL;
 	COS_PKG_FILE_RECORD* pFileRecord = NULL;
+	u32 MyOverrideFileSize = 0;
+	u64 file_size = 0;	
+	u32 i = 0;
 	int retval = -1;
 
 
@@ -250,10 +251,11 @@ int build_hdr(u8** ppCosHdr, u32* pHdrSize, u32 NumFiles, u64 OverrideFileSize, 
 	// in the COS header	
 	if ( b_OverrideFileSize == TRUE)	
 	{
+		MyOverrideFileSize = (u32)OverrideFileSize;
 		if (OverrideFileSize > (file_size + *pHdrSize))
 		{
 			if (b_DebugModeEnabled)
-				printf("RE-SIZED COS 'content' file to override size:0x%x\n", OverrideFileSize);
+				printf("RE-SIZED COS 'content' file: prev size:0x%llx, new size:0x%x\n", (file_size + *pHdrSize), MyOverrideFileSize);
 			// calculate the new sizes
 			*pPaddSize = (OverrideFileSize - *pHdrSize) - file_size;
 			file_size = (OverrideFileSize - *pHdrSize);
@@ -261,11 +263,11 @@ int build_hdr(u8** ppCosHdr, u32* pHdrSize, u32 NumFiles, u64 OverrideFileSize, 
 		// otherwise, if our 'override' file size is smaller than our current size,
 		// we have a 'fatal' error, and must exit out
 		else if (OverrideFileSize < (file_size + *pHdrSize)) {
-			printf("ERROR:  Attempted to resize COS 'content' file with invalid size:0x%x, exiting!\n", OverrideFileSize);
+			printf("!!ERROR!! RE-SIZE failed, current COS 'content' file size: 0x%llx, is LARGER than original size: 0x%x, exiting!!!\n", (file_size + *pHdrSize), MyOverrideFileSize);
 			goto exit;
 		}
 		else if (OverrideFileSize == (file_size + *pHdrSize)) {
-			printf("Original COS 'Content' size is already sized properly, re-size not required...\n");
+			printf("Original COS 'Content' size: 0x%x, is already sized properly, re-size not required...\n", MyOverrideFileSize);
 		}
 	}
 	// alloc memory for the hdr

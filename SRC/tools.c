@@ -521,9 +521,11 @@ exit:
 }
 
 //////////////////////////////////////////////////////////////////////////////
-static int key_read(const char *path, u32 len, u8 *dst)
+int key_read(const char *path, u32 len, u8 *dst)
 {	
 	int retval = -1;
+
+
 
 	// validate input params
 	if ( (path == NULL) || (dst == NULL) )
@@ -544,7 +546,7 @@ exit:
 }
 
 ///////////////////////////////////////////////////////////////////////
-struct keylist *keys_get(enum sce_key type)
+struct keylist* keys_get(enum sce_key type)
 {
 	const char *name = NULL;
 	char base[MAX_PATH] = {0};
@@ -555,126 +557,153 @@ struct keylist *keys_get(enum sce_key type)
 	struct dirent *dent = NULL;
 	struct keylist *klist = NULL;
 	u8 bfr[4] = {0};
+	int retval = -1;
 
 
-	klist = calloc( sizeof(*klist), sizeof(char));
-	if (klist == NULL)
-		goto fail;	
+	__try 
+	{
+		// alloc mem for the 'klist' structure
+		klist = calloc( sizeof(*klist), sizeof(char));
+		if (klist == NULL)
+			__leave;
 
-	name = id2name(type, t_key2file, NULL);
-	if (name == NULL)
-		goto fail;
+		name = id2name(type, t_key2file, NULL);
+		if (name == NULL)
+			__leave;
 
-	if (key_build_path(base) < 0)
-		goto fail;
+		// build the base path to keys
+		if (key_build_path(base) < 0)
+			__leave;
 
-	dp = opendir(base);
-	if (dp == NULL)
-		goto fail;
+		// attempt to open the key dir
+		dp = opendir(base);
+		if (dp == NULL)
+			__leave;
 
-	while ((dent = readdir(dp)) != NULL) {
-		if (strncmp(dent->d_name, name, strlen(name)) == 0 &&
-		    strstr(dent->d_name, "key") != NULL) {
-			tmp = realloc(klist->keys, (klist->n + 1) * sizeof(struct key));
-			if (tmp == NULL)
-				goto fail;
+		while ((dent = readdir(dp)) != NULL)
+		{
+			if (strncmp(dent->d_name, name, strlen(name)) == 0 &&
+				strstr(dent->d_name, "key") != NULL) {
+				tmp = realloc(klist->keys, (klist->n + 1) * sizeof(struct key));
+				if (tmp == NULL)
+					__leave;
 
-			id = strrchr(dent->d_name, '-');
-			if (id != NULL)
-				id++;
+				id = strrchr(dent->d_name, '-');
+				if (id != NULL)
+					id++;
 
-			klist->keys = tmp;
-			memset(&klist->keys[klist->n], 0, sizeof(struct key));
+				klist->keys = tmp;
+				memset(&klist->keys[klist->n], 0, sizeof(struct key));
 
-			sprintf_s(path, sizeof path, "%s/%s-key-%s", base, name, id);
-			if (key_read(path, 32, klist->keys[klist->n].key) != 0) {
+				sprintf_s(path, sizeof path, "%s/%s-key-%s", base, name, id);
+				if (key_read(path, 32, klist->keys[klist->n].key) != 0) {
+					printf("  key file:   %s (ERROR)\n", path);
+				}
+
+				sprintf_s(path, sizeof path, "%s/%s-iv-%s", base, name, id);
+				if (key_read(path, AES128_KEY_SIZE, klist->keys[klist->n].iv) != 0) {
+					printf("  iv file:    %s (ERROR)\n", path);
+				}
+
+				klist->keys[klist->n].pub_avail = -1;
+				klist->keys[klist->n].priv_avail = -1;
+
+				sprintf_s(path, sizeof path, "%s/%s-pub-%s", base, name, id);
+				if (key_read(path, 40, klist->keys[klist->n].pub) == 0) {
+					sprintf_s(path, sizeof path, "%s/%s-ctype-%s", base, name, id);
+					key_read(path, 4, bfr);
+
+					klist->keys[klist->n].pub_avail = 1;
+					klist->keys[klist->n].ctype = be32(bfr);
+				} else {
+					printf("  pub file:   %s (ERROR)\n", path);
+				}
+
+				sprintf_s(path, sizeof path, "%s/%s-priv-%s", base, name, id);
+				if (key_read(path, 21, klist->keys[klist->n].priv) == 0) {
+					klist->keys[klist->n].priv_avail = 1;
+				} else {
+					printf("  priv file:  %s (ERROR)\n", path);
+				}
+
+
+				klist->n++;
+			}
+		} // end while{} loop
+
+		// if type is "NPDRM"
+		if (type == KEY_NPDRM) 
+		{
+			klist->idps = calloc(sizeof(struct key), 1);
+			if (klist->idps == NULL)
+				__leave;
+
+			sprintf_s(path, sizeof (path), "%s/idps", base);
+			if (key_read(path, AES128_KEY_SIZE, klist->idps->key) != 0) {
 				printf("  key file:   %s (ERROR)\n", path);
 			}
 
-			sprintf_s(path, sizeof path, "%s/%s-iv-%s", base, name, id);
-			if (key_read(path, AES128_KEY_SIZE, klist->keys[klist->n].iv) != 0) {
-				printf("  iv file:    %s (ERROR)\n", path);
+			klist->klic = calloc(sizeof(struct key), 1);
+			if (klist->klic == NULL)
+				__leave;
+
+			sprintf_s(path, sizeof (path), "%s/klic-key", base);
+			if (key_read(path, AES128_KEY_SIZE, klist->klic->key) != 0) {
+				printf("  key file:   %s (ERROR)\n", path);
 			}
 
-			klist->keys[klist->n].pub_avail = -1;
-			klist->keys[klist->n].priv_avail = -1;
+			klist->rif = calloc(sizeof(struct key), 1);
+			if (klist->rif == NULL)
+				__leave;
 
-			sprintf_s(path, sizeof path, "%s/%s-pub-%s", base, name, id);
-			if (key_read(path, 40, klist->keys[klist->n].pub) == 0) {
-				sprintf_s(path, sizeof path, "%s/%s-ctype-%s", base, name, id);
-				key_read(path, 4, bfr);
-
-				klist->keys[klist->n].pub_avail = 1;
-				klist->keys[klist->n].ctype = be32(bfr);
-			} else {
-				printf("  pub file:   %s (ERROR)\n", path);
+			sprintf_s(path, sizeof path, "%s/rif-key", base);
+			if (key_read(path, AES128_KEY_SIZE, klist->rif->key) != 0) {
+				printf("  key file:   %s (ERROR)\n", path);
 			}
 
-			sprintf_s(path, sizeof path, "%s/%s-priv-%s", base, name, id);
-			if (key_read(path, 21, klist->keys[klist->n].priv) == 0) {
-				klist->keys[klist->n].priv_avail = 1;
-			} else {
-				printf("  priv file:  %s (ERROR)\n", path);
+			klist->npdrm_const = calloc(sizeof(struct key), 1);
+			if (klist->npdrm_const == NULL)
+				__leave;
+
+			sprintf_s(path, sizeof path, "%s/npdrm-const", base);
+			if (key_read(path, AES128_KEY_SIZE, klist->npdrm_const->key) != 0) {
+				printf("  key file:   %s (ERROR)\n", path);
 			}
 
+			klist->free_klicensee = calloc(sizeof(struct key), 1);
+			if (klist->free_klicensee == NULL)
+				__leave;
 
-			klist->n++;
+			sprintf_s(path, sizeof path, "%s/free_klicensee-key", base);
+			if (key_read(path, AES128_KEY_SIZE, klist->free_klicensee->key) != 0) {
+				printf("  key file:   %s (ERROR)\n", path);
+			}
+		} // end if (type == KEY_NPDRM) 
+
+		// status success
+		retval = STATUS_SUCCESS;	
+
+	} // end try{}
+
+	__except(EXCEPTION_EXECUTE_HANDLER)
+	{
+		printf("Exception Thrown:  keys_get() function......exiting....\n");
+		retval = -1;
+	}
+
+	// if failed, then free the klist, 
+	// and exit out
+	if (retval != STATUS_SUCCESS)
+	{
+		if (klist != NULL)
+		{
+			if (klist->keys != NULL)
+				free(klist->keys);
+			free(klist);
 		}
+		klist = NULL;
 	}
-
-    if (type == KEY_NPDRM) {
-        klist->idps = calloc(sizeof(struct key), 1);
-        if (klist->idps == NULL)
-            goto fail;
-        sprintf_s(path, sizeof (path), "%s/idps", base);
-        if (key_read(path, AES128_KEY_SIZE, klist->idps->key) != 0) {
-            printf("  key file:   %s (ERROR)\n", path);
-        }
-
-        klist->klic = calloc(sizeof(struct key), 1);
-        if (klist->klic == NULL)
-            goto fail;
-        sprintf_s(path, sizeof (path), "%s/klic-key", base);
-        if (key_read(path, AES128_KEY_SIZE, klist->klic->key) != 0) {
-            printf("  key file:   %s (ERROR)\n", path);
-        }
-
-        klist->rif = calloc(sizeof(struct key), 1);
-        if (klist->rif == NULL)
-            goto fail;
-        sprintf_s(path, sizeof path, "%s/rif-key", base);
-        if (key_read(path, AES128_KEY_SIZE, klist->rif->key) != 0) {
-            printf("  key file:   %s (ERROR)\n", path);
-        }
-
-        klist->npdrm_const = calloc(sizeof(struct key), 1);
-        if (klist->npdrm_const == NULL)
-            goto fail;
-        sprintf_s(path, sizeof path, "%s/npdrm-const", base);
-        if (key_read(path, AES128_KEY_SIZE, klist->npdrm_const->key) != 0) {
-            printf("  key file:   %s (ERROR)\n", path);
-        }
-
-        klist->free_klicensee = calloc(sizeof(struct key), 1);
-        if (klist->free_klicensee == NULL)
-            goto fail;
-        sprintf_s(path, sizeof path, "%s/free_klicensee-key", base);
-        if (key_read(path, AES128_KEY_SIZE, klist->free_klicensee->key) != 0) {
-            printf("  key file:   %s (ERROR)\n", path);
-        }
-    }
-
 	return klist;
-
-fail:
-	if (klist != NULL) {
-		if (klist->keys != NULL)
-			free(klist->keys);
-		free(klist);
-	}
-	klist = NULL;
-
-	return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -693,7 +722,7 @@ int key_get_simple(const char *name, u8 *bfr, u32 len)
 		goto exit;
 
 	// go attempt to read in the key
-	sprintf_s(path, sizeof path, "%s/%s", base, name);
+	sprintf_s(path, MAX_PATH, "%s/%s", base, name);
 	if ( key_read(path, len, bfr) < 0 )
 		goto  exit;
 
@@ -705,7 +734,7 @@ exit:
 }
 
 // func for finding 'old style' key set via direct 'keyname' specified
-int key_get(enum sce_key type, const char *suffix, struct key *k)
+int key_get(enum sce_key type, const char* suffix, struct key* pInKey)
 {
 	const char *name = "";
 	const char *rev = "";
@@ -714,75 +743,96 @@ int key_get(enum sce_key type, const char *suffix, struct key *k)
 	u8 tmp[4] = {0};
 	int retval = -1;
 
+	
 
-	// get the 'old' style keys
-	if ( strncmp( suffix, "retail", strlen( suffix ) ) == 0 ) {
-		rev = "retail";
-	} else if ( atoi( suffix ) <= 92 ) {
-		suffix = "092";
-		rev = "0x00";
-	} else if ( atoi( suffix ) <= 331 ) {
-		suffix = "315";
-		rev = "0x01";
-	} else if ( atoi( suffix ) <= 342 ) {
-		suffix = "341";
-		rev = "0x04";
-	} else if ( atoi( suffix ) <= 350 ) {
-		suffix = "350";
-		rev = "0x07";
-	} else if ( atoi( suffix ) <= 355 ) {
-		suffix = "355";
-		rev = "0x0a";
-	} else if ( atoi( suffix ) <= 356 ) {
-		suffix = "356";
-		rev = "0x0d";
-	}
-
-	printf("  file suffix:    %s (rev %s)\n", suffix, rev );
-	if (key_build_path(base) < 0)
+	// validate input params
+	if ( (suffix == NULL) || (pInKey == NULL) )
 		goto exit;
 
-	name = id2name(type, t_key2file, NULL);
-	if (name == NULL)
-		goto exit;
+	__try
+	{
+		// get the 'old' style keys
+		if ( strncmp( suffix, "retail", strlen( suffix ) ) == 0 ) {
+			rev = "retail";
+		} else if ( atoi( suffix ) <= 92 ) {
+			suffix = "092";
+			rev = "0x00";
+		} else if ( atoi( suffix ) <= 331 ) {
+			suffix = "315";
+			rev = "0x01";
+		} else if ( atoi( suffix ) <= 342 ) {
+			suffix = "341";
+			rev = "0x04";
+		} else if ( atoi( suffix ) <= 350 ) {
+			suffix = "350";
+			rev = "0x07";
+		} else if ( atoi( suffix ) <= 355 ) {
+			suffix = "355";
+			rev = "0x0a";
+		} else if ( atoi( suffix ) <= 356 ) {
+			suffix = "356";
+			rev = "0x0d";
+		}
+		// build the base path to the 'keys' 
+		printf("  file suffix:    %s (rev %s)\n", suffix, rev );
+		if (key_build_path(base) < 0)
+			__leave;
 
-	sprintf_s(path, sizeof path, "%s/%s-key-%s", base, name, suffix);
-	if (key_read(path, 32, k->key) < 0) {
-		printf("  key file:   %s (ERROR)\n", path);
-		goto exit;
+		// grab the 'type' from the table
+		name = id2name(type, t_key2file, NULL);
+		if (name == NULL)
+			__leave;
+
+		// read in the "key" (erk)
+		sprintf_s(path, sizeof(path), "%s/%s-key-%s", base, name, suffix);
+		if (key_read(path, sizeof(pInKey->key), pInKey->key) != STATUS_SUCCESS ) {
+			printf("  key file:   %s (ERROR)\n", path);
+			__leave;
+		}
+
+		// read in the "iv"
+		sprintf_s(path, sizeof(path), "%s/%s-iv-%s", base, name, suffix);
+		if (key_read(path, sizeof(pInKey->iv), pInKey->iv) != STATUS_SUCCESS ) {
+			printf("  iv file:    %s (ERROR)\n", path);
+			__leave;
+		}
+
+		// read in the 'ctype'
+		pInKey->pub_avail = pInKey->priv_avail = 1;
+		sprintf_s(path, sizeof(path), "%s/%s-ctype-%s", base, name, suffix);
+		if (key_read(path, sizeof(pInKey->ctype), tmp) != STATUS_SUCCESS ) {
+			pInKey->pub_avail = pInKey->priv_avail = -1;
+			printf("  ctype file: %s (ERROR)\n", path);
+			__leave;
+		}
+		pInKey->ctype = be32(tmp);
+
+		// read in the 'pub' key		
+		sprintf_s(path, sizeof(path), "%s/%s-pub-%s", base, name, suffix);
+		if (key_read(path, sizeof(pInKey->pub), pInKey->pub) != STATUS_SUCCESS ) {
+			printf("  pub file:   %s (ERROR)\n", path);
+			pInKey->pub_avail = -1;
+		}
+
+		// read in the 'priv' key
+		sprintf_s(path, sizeof(path), "%s/%s-priv-%s", base, name, suffix);
+		if (key_read(path, sizeof(pInKey->priv), pInKey->priv) != STATUS_SUCCESS ) {
+			printf("  priv file:  %s (ERROR)\n", path);
+			pInKey->priv_avail = -1;		
+		}
+		/**/
+		/*******************************************************************/
+
+		// status success
+		retval = STATUS_SUCCESS;
+
+	} // end try{}
+
+	__except(EXCEPTION_EXECUTE_HANDLER)
+	{
+		printf("Exception thrown-->key_get() function....exiting...\n");
+		retval = -1;
 	}
-
-	sprintf_s(path, sizeof path, "%s/%s-iv-%s", base, name, suffix);
-	if (key_read(path, AES128_KEY_SIZE, k->iv) < 0) {
-		printf("  iv file:    %s (ERROR)\n", path);
-		goto exit;
-	}
-
-	k->pub_avail = k->priv_avail = 1;
-	sprintf_s(path, sizeof path, "%s/%s-ctype-%s", base, name, suffix);
-	if (key_read(path, 4, tmp) < 0) {
-		k->pub_avail = k->priv_avail = -1;
-		printf("  ctype file: %s (ERROR)\n", path);
-		goto exit;
-	}
-
-	k->ctype = be32(tmp);
-	sprintf_s(path, sizeof path, "%s/%s-pub-%s", base, name, suffix);
-	if (key_read(path, 40, k->pub) < 0) {
-		printf("  pub file:   %s (ERROR)\n", path);
-		k->pub_avail = -1;
-	}
-
-	sprintf_s(path, sizeof path, "%s/%s-priv-%s", base, name, suffix);
-	if (key_read(path, 21, k->priv) < 0) {
-		printf("  priv file:  %s (ERROR)\n", path);
-		k->priv_avail = -1;		
-	}
-	/**/
-	/*******************************************************************/
-
-	// status success
-	retval = STATUS_SUCCESS;
 
 exit:
 	// return status
@@ -800,66 +850,79 @@ int key_get_new(u16 KeyRev, struct key *pInKey)
 	int retval = -1;
 
 
+
+
 	// validate input params
-	if ( (pInKey == NULL) || (b_NewKeysFilesLoaded == FALSE) )
-		goto exit;
-		
-	// now go and try to find the correct keyset for this 'version'
-	pKeySet = _keyset_find_for_pkg(KeyRev);	
-	if (pKeySet == NULL) {
-		printf("Error! Could not find key in new keys file.....\n");
-		goto exit;
-	}
+	if ( (pInKey == NULL) || (b_NewKeysFilesLoaded == FALSE ) )
+		goto exit;			
 
-	// copy over the ERK (ie 'key')
-	if ( pKeySet->erk != NULL) {
-		if ( memcpy_s(&pInKey->key, sizeof(pInKey->key), pKeySet->erk, sizeof(pInKey->key) ) != 0 ) {
-			printf("Failed to copy keys, exiting!\n");
-			goto exit;
+
+	__try 
+	{		
+		// now go and try to find the correct keyset for this 'version'
+		pKeySet = _keyset_find_for_pkg(KeyRev);	
+		if (pKeySet == NULL) {
+			printf("Error! Could not find key in new keys file.....\n");
+			__leave;
 		}
-	}
-	// copy over the RIV (ie 'iv)
-	if ( pKeySet->riv != NULL) {
-		if ( memcpy_s(&pInKey->iv, sizeof(pInKey->iv), pKeySet->riv, sizeof(pInKey->iv) ) != 0 ) {
-			printf("Failed to copy keys, exiting!\n");
-			goto exit;
+
+		// copy over the ERK (ie 'key')
+		if ( pKeySet->erk != NULL) {
+			if ( memcpy_s(&pInKey->key, sizeof(pInKey->key), pKeySet->erk, sizeof(pInKey->key) ) != 0 ) {
+				printf("Failed to copy keys, exiting!\n");
+				__leave;
+			}
 		}
-	}
-	// get the 'c-type'	
-	if ( memcpy_s(&pInKey->ctype, sizeof(pInKey->ctype), &pKeySet->ctype, sizeof(pInKey->ctype) ) != 0 )  {
-		printf("Failed to copy keys, exiting!\n");
-		goto exit;
-	}	
-	// copy over the pub key
-	if ( pKeySet->pub != NULL) {
-		if ( memcpy_s(&pInKey->pub, sizeof(pInKey->pub), pKeySet->pub, sizeof(pInKey->pub) ) != 0 ) {
-			printf("Failed to copy keys, exiting!\n");
-			goto exit;
+		// copy over the RIV (ie 'iv)
+		if ( pKeySet->riv != NULL) {
+			if ( memcpy_s(&pInKey->iv, sizeof(pInKey->iv), pKeySet->riv, sizeof(pInKey->iv) ) != 0 ) {
+				printf("Failed to copy keys, exiting!\n");
+				__leave;
+			}
 		}
-	}
-	// copy over the priv key
-	if ( pKeySet->priv != NULL) {
-		if ( memcpy_s(&pInKey->priv, sizeof(pInKey->priv), pKeySet->priv, sizeof(pInKey->priv) ) != 0 ) {
+		// get the 'c-type'	
+		if ( memcpy_s(&pInKey->ctype, sizeof(pInKey->ctype), &pKeySet->ctype, sizeof(pInKey->ctype) ) != 0 )  {
 			printf("Failed to copy keys, exiting!\n");
-			goto exit;
+			__leave;
 		}	
-	}
-	/* if we found the keyset in the 'keys' file  */
-	// status success
-	pInKey->pub_avail = pInKey->priv_avail = 1;
+		// copy over the pub key
+		if ( pKeySet->pub != NULL) {
+			if ( memcpy_s(&pInKey->pub, sizeof(pInKey->pub), pKeySet->pub, sizeof(pInKey->pub) ) != 0 ) {
+				printf("Failed to copy keys, exiting!\n");
+				__leave;
+			}
+		}
+		// copy over the priv key
+		if ( pKeySet->priv != NULL) {
+			if ( memcpy_s(&pInKey->priv, sizeof(pInKey->priv), pKeySet->priv, sizeof(pInKey->priv) ) != 0 ) {
+				printf("Failed to copy keys, exiting!\n");
+				__leave;
+			}	
+		}
+		/* if we found the keyset in the 'keys' file  */
+		// status success
+		pInKey->pub_avail = pInKey->priv_avail = 1;
 
-	// setup the ECDSA params
-	if (ecdsa_set_curve_org(pInKey->ctype) < 0) {
-		printf("ecdsa_set_curve failed");
-		goto exit;
+		// setup the ECDSA params
+		if (ecdsa_set_curve_org(pInKey->ctype) < 0) {
+			printf("ecdsa_set_curve failed");
+			__leave;
+		}
+		// setup the ECDSA pub/priv keys
+		ecdsa_set_pub_org(pInKey->pub);
+		ecdsa_set_priv_org(pInKey->priv);
+		retval = STATUS_SUCCESS;
+
+	} // end try{}
+
+	__except(EXCEPTION_EXECUTE_HANDLER)
+	{
+		printf("Exception thrown: key_get_new(), exiting....\n");
+		retval = -1;
 	}
-	// setup the ECDSA pub/priv keys
-	ecdsa_set_pub_org(pInKey->pub);
-	ecdsa_set_priv_org(pInKey->priv);
-	retval = STATUS_SUCCESS;
 
 exit:
-	return 0;
+	return retval;
 }
 /**/
 /****************************************************************************/
@@ -878,62 +941,74 @@ int load_keylist_from_key(struct keylist** ppInKeyList, struct key* pInKey)
 	if ( (ppInKeyList == NULL) || (pInKey == NULL) )
 		goto exit;
 
-	// alloc a struct for a single 'keylist'
-	pKey = (struct key*)calloc(sizeof(struct key), sizeof(char));
-	if (pKey == NULL) {
-		printf("Error!  memory allocation failed, exiting....\n");
-		goto exit;
+
+	__try
+	{
+		// alloc a struct for a single 'keylist'
+		pKey = (struct key*)calloc(sizeof(struct key), sizeof(char));
+		if (pKey == NULL) {
+			printf("Error!  memory allocation failed, exiting....\n");
+			__leave;
+		}
+
+		// alloc a struct for a single 'keylist'
+		pMyKeyList = (struct keylist*)calloc(sizeof(struct keylist), sizeof(char));
+		if (pMyKeyList == NULL) {
+			printf("Error!  memory allocation failed, exiting....\n");
+			__leave;
+		}
+		// setup the single 'keylist->key" struct
+		pMyKeyList->keys = pKey;
+		
+		// copy over the ERK, (ie 'key') -- if defined --	
+		if ( memcpy_s(&pMyKeyList->keys[0].key, sizeof(pInKey->key), pInKey->key, sizeof(pInKey->key) ) != 0 ) {
+			printf("Failed to copy keys, exiting!\n");
+			__leave;
+		}	
+		// copy over the RIV (ie 'iv) -- if defined --	
+		if ( memcpy_s(&pMyKeyList->keys[0].iv, sizeof(pInKey->iv), pInKey->iv, sizeof(pInKey->iv) ) != 0 ) {
+			printf("Failed to copy keys, exiting!\n");
+			__leave;
+		}	
+		// get the 'c-type'  -- if defined --	
+		if ( memcpy_s(&pMyKeyList->keys[0].ctype, sizeof(pInKey->ctype), &pInKey->ctype, sizeof(pInKey->ctype) ) != 0 )  {
+			printf("Failed to copy keys, exiting!\n");
+			__leave;
+		}		
+		// copy over the pub key  -- if defined --	
+		if ( memcpy_s(&pMyKeyList->keys[0].pub, sizeof(pInKey->pub), pInKey->pub, sizeof(pInKey->pub) ) != 0 ) {
+			printf("Failed to copy keys, exiting!\n");
+			__leave;
+		}	
+		// copy over the priv key	
+		if ( memcpy_s(&pMyKeyList->keys[0].priv, sizeof(pInKey->priv), pInKey->priv, sizeof(pInKey->priv) ) != 0 ) {
+			printf("Failed to copy keys, exiting!\n");
+			__leave;
+		}	
+		
+		// status success	
+		pMyKeyList->keys[0].pub_avail = pMyKeyList->keys[0].priv_avail = 1;
+		pMyKeyList->n++;	
+
+		// setup the ECDSA params
+		if (ecdsa_set_curve_org(pMyKeyList->keys[0].ctype) < 0) {
+			printf("ecdsa_set_curve failed");
+			__leave;
+		}
+		// setup the ECDSA pub/priv keys
+		ecdsa_set_pub_org(pMyKeyList->keys[0].pub);
+		ecdsa_set_priv_org(pMyKeyList->keys[0].priv);
+		*ppInKeyList = 	pMyKeyList;
+		retval = STATUS_SUCCESS;
+
+	} // end __try{}
+
+	__except(EXCEPTION_EXECUTE_HANDLER)
+	{
+		printf("Exception thrown: load_keylist_from_key(), exiting.....\n");
+		retval = -1;
 	}
 
-	// alloc a struct for a single 'keylist'
-	pMyKeyList = (struct keylist*)calloc(sizeof(struct keylist), sizeof(char));
-	if (pMyKeyList == NULL) {
-		printf("Error!  memory allocation failed, exiting....\n");
-		goto exit;
-	}
-	// setup the single 'keylist->key" struct
-	pMyKeyList->keys = pKey;
-		
-	// copy over the ERK, (ie 'key') -- if defined --	
-	if ( memcpy_s(&pMyKeyList->keys[0].key, sizeof(pInKey->key), pInKey->key, sizeof(pInKey->key) ) != 0 ) {
-		printf("Failed to copy keys, exiting!\n");
-		goto exit;
-	}	
-	// copy over the RIV (ie 'iv) -- if defined --	
-	if ( memcpy_s(&pMyKeyList->keys[0].iv, sizeof(pInKey->iv), pInKey->iv, sizeof(pInKey->iv) ) != 0 ) {
-		printf("Failed to copy keys, exiting!\n");
-		goto exit;
-	}	
-	// get the 'c-type'  -- if defined --	
-	if ( memcpy_s(&pMyKeyList->keys[0].ctype, sizeof(pInKey->ctype), &pInKey->ctype, sizeof(pInKey->ctype) ) != 0 )  {
-		printf("Failed to copy keys, exiting!\n");
-		goto exit;
-	}		
-	// copy over the pub key  -- if defined --	
-	if ( memcpy_s(&pMyKeyList->keys[0].pub, sizeof(pInKey->pub), pInKey->pub, sizeof(pInKey->pub) ) != 0 ) {
-		printf("Failed to copy keys, exiting!\n");
-		goto exit;
-	}	
-	// copy over the priv key	
-	if ( memcpy_s(&pMyKeyList->keys[0].priv, sizeof(pInKey->priv), pInKey->priv, sizeof(pInKey->priv) ) != 0 ) {
-		printf("Failed to copy keys, exiting!\n");
-		goto exit;
-	}	
-		
-	// status success	
-	pMyKeyList->keys[0].pub_avail = pMyKeyList->keys[0].priv_avail = 1;
-	pMyKeyList->n++;	
-	// setup the ECDSA params
-	if (ecdsa_set_curve_org(pMyKeyList->keys[0].ctype) < 0) {
-		printf("ecdsa_set_curve failed");
-		goto exit;
-	}
-	// setup the ECDSA pub/priv keys
-	ecdsa_set_pub_org(pMyKeyList->keys[0].pub);
-	ecdsa_set_priv_org(pMyKeyList->keys[0].priv);
-	*ppInKeyList = 	pMyKeyList;
-	retval = STATUS_SUCCESS;
-	
 exit:
 	// return the status
 	return retval;
@@ -957,77 +1032,89 @@ int load_singlekey_by_name(char* pKeyName, struct keylist** ppInKeyList)
 	if ( (pKeyName == NULL) || (ppInKeyList == NULL) || (b_NewKeysFilesLoaded == FALSE) )
 		goto exit;
 
-	// alloc a struct for a single 'keylist'
-	pKey = (struct key*)calloc(sizeof(struct key), sizeof(char));
-	if (pKey == NULL) {
-		printf("Error!  memory allocation failed, exiting....\n");
-		goto exit;
-	}
+	__try
+	{
+		// alloc a struct for a single 'keylist'
+		pKey = (struct key*)calloc(sizeof(struct key), sizeof(char));
+		if (pKey == NULL) {
+			printf("Error!  memory allocation failed, exiting....\n");
+			__leave;
+		}
 
-	// alloc a struct for a single 'keylist'
-	pMyKeyList = (struct keylist*)calloc(sizeof(struct keylist), sizeof(char));
-	if (pMyKeyList == NULL) {
-		printf("Error!  memory allocation failed, exiting....\n");
-		goto exit;
-	}
-	// setup the single 'keylist->key" struct
-	pMyKeyList->keys = pKey;
+		// alloc a struct for a single 'keylist'
+		pMyKeyList = (struct keylist*)calloc(sizeof(struct keylist), sizeof(char));
+		if (pMyKeyList == NULL) {
+			printf("Error!  memory allocation failed, exiting....\n");
+			__leave;
+		}
+		// setup the single 'keylist->key" struct
+		pMyKeyList->keys = pKey;
 	
-	// now go and try to find the keyset by 'keyname'
-	pKeySet = keyset_find_by_name(pKeyName);
-	if (pKeySet == NULL) {
-		printf("Error! Could not find key in new keys file.....\n");
-		goto exit;
-	}	
-	// copy over the ERK, (ie 'key') -- if defined --
-	if (pKeySet->erk != NULL) {
-		if ( memcpy_s(&pMyKeyList->keys[0].key, sizeof(pKey->key), pKeySet->erk, sizeof(pKey->key) ) != 0 ) {
-			printf("Failed to copy keys, exiting!\n");
-			goto exit;
+		// now go and try to find the keyset by 'keyname'
+		pKeySet = keyset_find_by_name(pKeyName);
+		if (pKeySet == NULL) {
+			printf("Error! Could not find key in new keys file.....\n");
+			__leave;
+		}	
+		// copy over the ERK, (ie 'key') -- if defined --
+		if (pKeySet->erk != NULL) {
+			if ( memcpy_s(&pMyKeyList->keys[0].key, sizeof(pKey->key), pKeySet->erk, sizeof(pKey->key) ) != 0 ) {
+				printf("Failed to copy keys, exiting!\n");
+				__leave;
+			}
 		}
-	}
-	// copy over the RIV (ie 'iv) -- if defined --
-	if (pKeySet->riv != NULL) {
-		if ( memcpy_s(&pMyKeyList->keys[0].iv, sizeof(pKey->iv), pKeySet->riv, sizeof(pKey->iv) ) != 0 ) {
-			printf("Failed to copy keys, exiting!\n");
-			goto exit;
+		// copy over the RIV (ie 'iv) -- if defined --
+		if (pKeySet->riv != NULL) {
+			if ( memcpy_s(&pMyKeyList->keys[0].iv, sizeof(pKey->iv), pKeySet->riv, sizeof(pKey->iv) ) != 0 ) {
+				printf("Failed to copy keys, exiting!\n");
+				__leave;
+			}
 		}
-	}
-	// get the 'c-type'  -- if defined --	
-	if ( memcpy_s(&pMyKeyList->keys[0].ctype, sizeof(pKey->ctype), &pKeySet->ctype, sizeof(pKey->ctype) ) != 0 )  {
-		printf("Failed to copy keys, exiting!\n");
-		goto exit;
-	}		
-	// copy over the pub key  -- if defined --
-	if (pKeySet->pub != NULL) {
-		if ( memcpy_s(&pMyKeyList->keys[0].pub, sizeof(pKey->pub), pKeySet->pub, sizeof(pKey->pub) ) != 0 ) {
+		// get the 'c-type'  -- if defined --	
+		if ( memcpy_s(&pMyKeyList->keys[0].ctype, sizeof(pKey->ctype), &pKeySet->ctype, sizeof(pKey->ctype) ) != 0 )  {
 			printf("Failed to copy keys, exiting!\n");
-			goto exit;
+			__leave;
+		}		
+		// copy over the pub key  -- if defined --
+		if (pKeySet->pub != NULL) {
+			if ( memcpy_s(&pMyKeyList->keys[0].pub, sizeof(pKey->pub), pKeySet->pub, sizeof(pKey->pub) ) != 0 ) {
+				printf("Failed to copy keys, exiting!\n");
+				__leave;
+			}
 		}
-	}
-	// copy over the priv key
-	if (pKeySet->priv != NULL) {
-		if ( memcpy_s(&pMyKeyList->keys[0].priv, sizeof(pKey->priv), pKeySet->priv, sizeof(pKey->priv) ) != 0 ) {
-			printf("Failed to copy keys, exiting!\n");
-			goto exit;
+		// copy over the priv key
+		if (pKeySet->priv != NULL) {
+			if ( memcpy_s(&pMyKeyList->keys[0].priv, sizeof(pKey->priv), pKeySet->priv, sizeof(pKey->priv) ) != 0 ) {
+				printf("Failed to copy keys, exiting!\n");
+				__leave;
+			}
 		}
-	}
 	
-	/* if we found the keyset in the 'keys' file  */
-	// status success	
-	pMyKeyList->keys[0].pub_avail = pMyKeyList->keys[0].priv_avail = 1;
-	pMyKeyList->n++;
+		/* if we found the keyset in the 'keys' file  */
+		// status success	
+		pMyKeyList->keys[0].pub_avail = pMyKeyList->keys[0].priv_avail = 1;
+		pMyKeyList->n++;
 
-	// setup the ECDSA params
-	if (ecdsa_set_curve_org(pMyKeyList->keys[0].ctype) < 0) {
-		printf("ecdsa_set_curve failed");
-		goto exit;
+		// setup the ECDSA params
+		if (ecdsa_set_curve_org(pMyKeyList->keys[0].ctype) < 0) {
+			printf("ecdsa_set_curve failed");
+			__leave;
+		}
+		// set the ECDSA pub/priv keys
+		ecdsa_set_pub_org(pMyKeyList->keys[0].pub);
+		ecdsa_set_priv_org(pMyKeyList->keys[0].priv);
+
+		// status success
+		retval = STATUS_SUCCESS;
+		*ppInKeyList = pMyKeyList;
+
+	} // end try{}
+
+	__except(EXCEPTION_EXECUTE_HANDLER)
+	{
+		printf("Exception thrown: load_singlekey_by_name(), exiting....\n");
+		retval = -1;
 	}
-	// set the ECDSA pub/priv keys
-	ecdsa_set_pub_org(pMyKeyList->keys[0].pub);
-	ecdsa_set_priv_org(pMyKeyList->keys[0].priv);
-	retval = STATUS_SUCCESS;
-	*ppInKeyList = pMyKeyList;
 
 exit:
 	// if we failed, then free any memory

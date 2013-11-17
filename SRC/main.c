@@ -136,8 +136,8 @@ void usage (char* pszInParam)
 	printf("\tSPKG:\ttype of file is \"SPKG\"\n");
 	printf("\tCOS:\ttype of file is \"COREOS\"\n");	
 	printf("\tPUP:\ttype of file is \"PUP\"\n\n");	
-	printf("-buildnum:\tbuild number (in dec) of PUP build\n\n");	
-	printf("-setpkgsize:\tforce file size for pkg creation (in dec)\n\n");
+	printf("-buildnum:\t** optional **\n\tbuild number (in dec) of PUP build\n\n");	
+	printf("-setpkgsize:\t** optional **\n\tforce file size for pkg/cos creation (in dec)\n\n");
 	printf("-in:\tfull path of input file(s)\\dir\n\n");
 	printf("-out:\tfull path for output file(s)\\dir\n\n");
 	printf("\n   *** Note: ***\n");
@@ -227,8 +227,8 @@ int __cdecl main(int argc, char *argv[])
 	//strcpy_s(szKeyName, MAX_PATH, "pkg-key-retail");	
 	//strcpy_s(szKeyName, MAX_PATH, "SPKG-REV000");
 	//b_DefaultKeyListOverride = TRUE;
-	b_OverrideFileSize = TRUE;
-	override_file_size = 0x6FFFE0;
+	//b_OverrideFileSize = TRUE;
+	//override_file_size = 0x6FFFE0;
 	args_mask = 0x01;
 		
 	//
