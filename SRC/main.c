@@ -34,6 +34,7 @@
 #include "pkg.h"
 #include "spkg.h"
 #include "pup.h"
+#include "spp.h"
 #include "sce.h"
 #include "tool_structures.h"
 #include "file_functions.h"
@@ -43,7 +44,7 @@
 
 /////////////////////////////////////////
 /// update for any changes to this code
-#define PKGTOOL_VERSION		"1.1.0.0"
+#define PKGTOOL_VERSION		"1.2.0.0"
 /////////////////////////////////////////
 
 
@@ -113,8 +114,8 @@ void usage (char* pszInParam)
 	if (pszInParam != NULL)
 		printf("\nParameter: \"%s\" is invalid!\n", pszInParam);
 
-	printf("Usage:  PKGTOOL:  -debug  -zliblevel  -action  -key  -type  -buildnum  -setpkgsize  -in  -out\n\n");
-	printf("\nexample:\n<pkgtool.exe  -action PKG  -key  pkg-key-retail  -type PKG\n");
+	printf("Usage:  PKGTOOL:  -debug  -zliblevel  -action  -key  -type  -buildnum\n\t-setpkgsize  -in  -out\n\n");
+	printf("\nexample:\n<pkgtool.exe  -action encrypt  -key  pkg-key-retail  -type PKG\n");
 	printf("\t-in \"C:\\PS3MFW\\BUILD\\PS3MFW-MFW\\update_files\\CORE_OS_PACKAGE.unpkg\"\n");
 	printf("\t-out \"C:\\PS3MFW\\BUILD\\PS3MFW-MFW\\update_files\\CORE_OS_PACKAGE.pkg\">\n\n");
 
@@ -126,16 +127,17 @@ void usage (char* pszInParam)
 	printf("-zliblevel:\t** optional **\n");
 	printf("\t(-1 to 9): set zlib comp. level\n\n");
 	printf("-action:\n");
-	printf("\tPKG:\tBuild PKG/SPKG file\n");
-	printf("\tUNPKG:\tDecrypt PKG/SPKG file\n");	
-	printf("\tPACK:\tPack COS/PUP file\n");	
-	printf("\tUNPACK:\tUnpack COS/PUP file\n\n");	
+	printf("\tENCRYPT:   Encrypt PKG/SPKG/SPP file\n");
+	printf("\tDECRYPT:   Decrypt PKG/SPKG/SPP file\n");	
+	printf("\tPACK:\t   Pack COS/PUP file\n");	
+	printf("\tUNPACK:\t   Unpack COS/PUP file\n\n");	
 	printf("-key:\t\t** optional **\n\tspecific key file/name to override default key\n\n");	
 	printf("-type:\n");
 	printf("\tPKG:\ttype of file is \"PKG\" ** default **\n");
 	printf("\tSPKG:\ttype of file is \"SPKG\"\n");
 	printf("\tCOS:\ttype of file is \"COREOS\"\n");	
-	printf("\tPUP:\ttype of file is \"PUP\"\n\n");	
+	printf("\tPUP:\ttype of file is \"PUP\"\n");	
+	printf("\tSPP:\ttype of file is \"SPP\"\n\n");	
 	printf("-buildnum:\t** optional **\n\tbuild number (in dec) of PUP build\n\n");	
 	printf("-setpkgsize:\t** optional **\n\tforce file size for pkg/cos creation (in dec)\n\n");
 	printf("-in:\tfull path of input file(s)\\dir\n\n");
@@ -182,23 +184,33 @@ int __cdecl main(int argc, char *argv[])
 	#if defined TOOL_DEBUG_TEST_PKG
 	g_bZlibCompressLevel = Z_DEFAULT_COMPRESSION;
 	strcpy_s(szType, MAX_PATH, "PKG");
-	strcpy_s(szAction, MAX_PATH, "pkg");	
+	strcpy_s(szAction, MAX_PATH, "encrypt");	
 	strcpy_s(szInPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\scratch");
 	strcpy_s(szOutPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\scratch\\test_cos.pkg");
 	#elif defined TOOL_DEBUG_TEST_SPKG
 	g_bZlibCompressLevel = Z_DEFAULT_COMPRESSION;
 	strcpy_s(szType, MAX_PATH, "SPKG");
-	strcpy_s(szAction, MAX_PATH, "pkg");	
+	strcpy_s(szAction, MAX_PATH, "encrypt");	
 	strcpy_s(szInPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\scratch");
 	strcpy_s(szOutPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\scratch\\test.pkg");
 	#elif defined TOOL_DEBUG_TEST_UNPKG
 	strcpy_s(szType, MAX_PATH, "PKG");
-	strcpy_s(szAction, MAX_PATH, "unpkg");	
+	strcpy_s(szAction, MAX_PATH, "decrypt");	
 	strcpy_s(szInPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\VERIFY_FILES\\BLUETOOTH_TEST.pkg");
 	strcpy_s(szOutPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\VERIFY_FILES\\BLUETOOTH\\scratch");
+	#elif defined TOOL_DEBUG_TEST_UNPKG_SPP
+	strcpy_s(szType, MAX_PATH, "SPP");
+	strcpy_s(szAction, MAX_PATH, "decrypt");	
+	strcpy_s(szInPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\VERIFY_FILES\\default.spp");
+	strcpy_s(szOutPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\VERIFY_FILES\\scratch\\default.pp");
+	#elif defined TOOL_DEBUG_TEST_PKG_SPP
+	strcpy_s(szType, MAX_PATH, "SPP");
+	strcpy_s(szAction, MAX_PATH, "encrypt");	
+	strcpy_s(szInPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\VERIFY_FILES\\scratch\\default_org.pp");
+	strcpy_s(szOutPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\VERIFY_FILES\\scratch\\default_test.spp");
 	#elif defined TOOL_DEBUG_TEST_UNSPKG
 	strcpy_s(szType, MAX_PATH, "SPKG");
-	strcpy_s(szAction, MAX_PATH, "unpkg");	
+	strcpy_s(szAction, MAX_PATH, "decrypt");	
 	strcpy_s(szInPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\scratch\\test.pkg.spkg_hdr.1");
 	strcpy_s(szOutPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\scratch\\test.pkg.spkg_hdr.1.out");
 	#elif defined TOOL_DEBUG_TEST_UNPACK_COS
@@ -259,12 +271,12 @@ int __cdecl main(int argc, char *argv[])
 				memset(szAction, 0, MAX_PATH);
 				if ( (argv[i+1] == NULL) )
 					usage("-action");
-				if ( (argv[i+1][0] == '-') || (strlen(argv[i+1]) < 3) || (strlen(argv[i+1]) > 6) )
+				if ( (argv[i+1][0] == '-') || (strlen(argv[i+1]) < 3) || (strlen(argv[i+1]) > 7) )
 					usage("-action");
-				if ( _stricmp(argv[i+1], "pkg") == 0 )
-					strcpy_s(szAction, MAX_PATH, "pkg");
-				else if ( _stricmp(argv[i+1], "unpkg") == 0 )
-					strcpy_s(szAction, MAX_PATH, "unpkg");
+				if ( _stricmp(argv[i+1], "encrypt") == 0 )
+					strcpy_s(szAction, MAX_PATH, "encrypt");
+				else if ( _stricmp(argv[i+1], "decrypt") == 0 )
+					strcpy_s(szAction, MAX_PATH, "decrypt");
 				else if ( _stricmp(argv[i+1], "unpack") == 0 )
 					strcpy_s(szAction, MAX_PATH, "unpack");
 				else if ( _stricmp(argv[i+1], "pack") == 0 )
@@ -324,6 +336,8 @@ int __cdecl main(int argc, char *argv[])
 					strcpy_s(szType, MAX_PATH, "COS");
 				else if ( _stricmp(argv[i+1], "pup") == 0 )
 					strcpy_s(szType, MAX_PATH, "PUP");
+				else if ( _stricmp(argv[i+1], "spp") == 0 )
+					strcpy_s(szType, MAX_PATH, "SPP");
 				else 
 					usage("-type");				
 				i++;
@@ -435,30 +449,38 @@ int __cdecl main(int argc, char *argv[])
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//																													//
-	//											PACKAGE SECTION															//
+	//											PACKAGE (ENCRYPT) SECTION												//
 	//	
-	// "package" operation for "PKG" or "SPKG"  types
+	// "encrypt" (PKG) operation for "PKG", "SPKG", or "SPP"  types
 	// ("pkg" will ONLY build the ".pkg" file, whereas "spkg" type will
 	//  build the ".pkg" and the "spkg_hdr.1" files)
-	if ( _stricmp(szAction, "pkg") == 0 ) 
+	if ( _stricmp(szAction, "encrypt") == 0 ) 
 	{		
-		/// package the "PKG" types ///
+		// case 'PKG' encrypt
 		if ( (_stricmp(szType, "PKG") == 0) || (_stricmp(szType, "SPKG") == 0) ) 
 		{			
 			// now go and create the package file
 			if ( do_pkg_create(szInPath, szOutPath, szType, szKeyName, override_file_size) != STATUS_SUCCESS ) {
 				printf("Failed to create .pkg file, exiting....\n");
 				goto exit;
+			}			
+		}
+		// case 'SPP' encrypt
+		else if ( (_stricmp(szType, "SPP") == 0) )
+		{
+			// now go and create the package file
+			if ( do_spp_encrypt(szInPath, szOutPath, szType, szKeyName) != STATUS_SUCCESS ) {
+				printf("Failed to create .spp file, exiting....\n");
+				goto exit;
 			}
-			
-			// done "PKG" action
-			printf("\n...%s packaging complete!\n", szType);
-
-		}// end if type == PKG
-		else {
+		}
+		else { 
 			printf("!!ERROR!! Unsupported type:%s for %s operation!\n", szType, szAction);
 			goto exit;
-		}		
+		}
+
+		// SUCCESS!  Done!
+		printf("\n...%s encrypting complete!\n\n", szType);
 		
 	} 
 	//																													//
@@ -467,16 +489,16 @@ int __cdecl main(int argc, char *argv[])
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//																													//
-	//											UN-PACKAGE SECTION														//
+	//											DECRYPT (UN-PACKAGE) SECTION											//
 	//																													//
-	else if ( _stricmp(szAction, "unpkg") == 0) 
+	else if ( _stricmp(szAction, "decrypt") == 0) 
 	{
-		/// Unpackage the "PKG" types ///
+		// case for "UN-PACKAGING" PKG files
 		if ( _stricmp(szType, "PKG") == 0 ) 
 		{		
 			// now go and decrypt the PKG (package)
 			if ( do_pkg_decrypt(szInPath, szOutPath, szKeyName) != STATUS_SUCCESS ) {
-				printf("Failed to unpackage .pkg file, exiting....\n");
+				printf("Failed to decrypt .pkg file, exiting....\n");
 				goto exit;		
 			}
 		}
@@ -485,7 +507,16 @@ int __cdecl main(int argc, char *argv[])
 		{
 			// now go and decrypt the SPKG (package)
 			if ( do_spkg_decrypt(szInPath, szOutPath, szKeyName) != STATUS_SUCCESS ) {
-				printf("Failed to unpackage .spkg file, exiting....\n");
+				printf("Failed to decrypt .spkg file, exiting....\n");
+				goto exit;		
+			}
+		}
+		// case for "UN-PACKAGING" SPP files
+		else if ( _stricmp(szType, "SPP") == 0 )
+		{
+			// now go and decrypt the SPKG (package)
+			if ( do_spp_decrypt(szInPath, szOutPath, szKeyName) != STATUS_SUCCESS ) {
+				printf("Failed to decrypt .spp file, exiting....\n");
 				goto exit;		
 			}
 		}
@@ -495,7 +526,7 @@ int __cdecl main(int argc, char *argv[])
 		}
 
 		// SUCCESS!  Done!
-		printf("\n...%s unpackaging complete!\n", szType);
+		printf("\n...%s decrypting complete!\n\n", szType);
 
 	} // end "unpkg" section
 	//																											//
@@ -512,7 +543,7 @@ int __cdecl main(int argc, char *argv[])
 		if ( _stricmp(szType, "COS") == 0 )
 		{
 			if ( do_unpack_cos_package(szInPath, szOutPath) != STATUS_SUCCESS ) {
-				printf("Failed to unpackage COS file, exiting....\n");
+				printf("Failed to unpack COS file, exiting....\n");
 				goto exit;	
 			}
 		}
@@ -520,7 +551,7 @@ int __cdecl main(int argc, char *argv[])
 		else if ( _stricmp(szType, "PUP") == 0 )
 		{
 			if ( do_pup_unpack(szInPath, szOutPath) != STATUS_SUCCESS ) {
-				printf("Failed to unpackage PUP file, exiting....\n");
+				printf("Failed to unpack PUP file, exiting....\n");
 				goto exit;	
 			}
 		}
@@ -530,7 +561,7 @@ int __cdecl main(int argc, char *argv[])
 		}
 
 		// SUCCESS!  Done!
-		printf("\n...%s unpacking Complete!\n", szType);
+		printf("\n...%s unpacking Complete!\n\n", szType);
 		
 	} // end of "UNPACK" section
 	//																													//
@@ -549,7 +580,7 @@ int __cdecl main(int argc, char *argv[])
 		{
 			// go and "pack" up the COS package
 			if ( create_cos_pkg(szInPath, szOutPath, override_file_size) != STATUS_SUCCESS ) {
-				printf("failed to pack cos file:%s\n", szInPath);
+				printf("failed to create/pack cos file:%s\n", szInPath);
 				goto exit;
 			}			
 		}
@@ -568,7 +599,7 @@ int __cdecl main(int argc, char *argv[])
 		}
 
 		// SUCCESS!  Done!
-		printf("\n...%s packing complete!\n", szType);
+		printf("\n...%s packing complete!\n\n", szType);
 
 	} // end of "pack" section
 	//																													//

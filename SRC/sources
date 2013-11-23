@@ -39,4 +39,5 @@ SOURCES=bn.c \
 		spkg.c \
 		tools.c \
 		pup.c \
+		spp.c \
 		main.c

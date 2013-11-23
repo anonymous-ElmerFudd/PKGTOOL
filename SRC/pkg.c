@@ -308,7 +308,7 @@ int build_meta_hdr(META_HDR* pMetaHdr, u64 ContentSizeFinal, u8 bDoCompress)
 
 	// area covered by the signature
 	pMetaDataHeader = (metadata_header_t*)ptr;
-	wbe64((u8*)&pMetaDataHeader->sig_input_length, sizeof(sce_header_t) + sizeof(META_HDR) - 0x30);
+	wbe64((u8*)&pMetaDataHeader->sig_input_length, sizeof(sce_header_t) + sizeof(META_HDR) - sizeof(metadata_section_header_t) );
 	wbe32((u8*)&pMetaDataHeader->unknown_0, 1);
 	wbe32((u8*)&pMetaDataHeader->section_count, 3);		// number of encrypted headers
 	wbe32((u8*)&pMetaDataHeader->key_count, (4 * 5));	// number of keys/hashes required ++++++
@@ -412,6 +412,7 @@ u64 build_pkg(sce_header_t* pSceHdr, META_HDR* pMetaHdr, u8** ppInPkg, u8** ppIn
 		goto exit;
 	}
 
+	// setup the final 'PKG' buffer
 	memset(*ppInPkg, 0xaa, (size_t)pkg_size);
 	memcpy(*ppInPkg, pSceHdr, sizeof(sce_header_t));
 	memcpy(*ppInPkg + 0x20, pMetaHdr, sizeof(META_HDR));
@@ -464,6 +465,8 @@ exit:
 }
 ////////////////////////////////////////////////////////////////////////
 
+
+// func. to ECDSA sign the PKG sections
 int sign_pkg(u8* pInPkg)
 {
 	u8 *r, *s = NULL;
@@ -815,11 +818,12 @@ int do_pkg_create(char* pInPath, char* pOutPath, char* pType, char* pKeyName, u6
 
 	// read in the 'content' file
 	if (get_content(szFullpath, &pMyContent, &content_size_original, &content_size_final, &bDoCompress, OverrideFileSize) != STATUS_SUCCESS)
-		goto exit;		
+		goto exit;
 
 	// build the SCE & META headers
 	if ( build_sce_hdr(&sce_hdr, content_size_original) != STATUS_SUCCESS )
 		goto exit;
+	
 	
 	/////////////////	KEYS LOADING	//////////////////////////////////////////
 	//
@@ -851,14 +855,15 @@ int do_pkg_create(char* pInPath, char* pOutPath, char* pType, char* pKeyName, u6
 	{
 		// try to get keys via the new 'keys' format first, if not,
 		// failover to the old keys style	
-		if ( key_get_new(sce_hdr.key_revision, &MyKey) != STATUS_SUCCESS )
+		if ( key_get_new(sce_hdr.key_revision, sce_hdr.header_type, &MyKey) != STATUS_SUCCESS )
 		{
-			printf("Failed to find keys in new \"KEYS\" file, exiting!\n");
+			printf("Failed to find PKG keys in new \"KEYS\" file, exiting!\n");
 			goto exit;			
 		}	
 	}	
 	//
 	////////////////////////////////////////////////////////////////////////////////
+
 
 	// build the 'metadata' headers
 	if ( build_meta_hdr(&meta_hdr, content_size_final, bDoCompress) != STATUS_SUCCESS )
@@ -937,17 +942,10 @@ int do_pkg_create(char* pInPath, char* pOutPath, char* pType, char* pKeyName, u6
 			// exit out
 			if ( load_singlekey_by_name("SPKG-REV000", &pMyKeyList) != STATUS_SUCCESS )
 			{
-				printf("Failed to find keys in new \"KEYS\" file, exiting!\n");
+				printf("Failed to find SPKG key in new \"KEYS\" file, exiting!\n");
 				goto exit;			
 			}					
-		}
-		// read in the desired keyset
-		//if ( get_key_spkg() != STATUS_SUCCESS ) {	
-		////	printf("key not found, exiting....\n");
-		//		goto exit;
-		//}
-		//
-		////////////////////////////////////////////////////////////////////////////////		
+		}				
 
 		// encrypt the data
  		if ( sce_encrypt_data_pkgtool(pMySpkg) != STATUS_SUCCESS ) 
@@ -982,6 +980,14 @@ exit:
 	// free the alloc'd memory
 	if (pMyContent != NULL)
 		free(pMyContent);
+
+	// free the alloc'd memory
+	if (pMyPkg != NULL)
+		free(pMyPkg);
+
+	// free the alloc'd memory
+	if (pMySpkg != NULL)
+		free(pMySpkg);
 
 	// return the status
 	return retval;

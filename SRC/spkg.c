@@ -112,11 +112,11 @@ int decrypt_spkg(u8* pInSpkg, u64* pDecSize, char* pKeyName)
 		// failover to the old keys style	
 		if ( load_all_type_keys(&pMyKeyList, KEYTYPE_PKG) != STATUS_SUCCESS )
 		{
-			printf("Failed to find keys in new \"KEYS\" file, trying old keys files....\n");
+			printf("Failed to find PKG keys in new \"KEYS\" file, trying old keys files....\n");
 			// grab the decrypt keys
 			pMyKeyList = keys_get(KEY_SPKG);
 			if (pMyKeyList->n == 0) {
-				printf("no key found\n");
+				printf("no SPKG key found\n");
 				goto exit;
 			}
 		}	

@@ -844,9 +844,10 @@ exit:
 
 
 /***************************************************************************/
-int key_get_new(u16 KeyRev, struct key *pInKey)
+int key_get_new(u16 KeyRev, u16 header_type, struct key *pInKey)
 {
 	keyset_t *pKeySet = NULL;
+	u16 MyHdrType = 0;
 	int retval = -1;
 
 
@@ -856,15 +857,40 @@ int key_get_new(u16 KeyRev, struct key *pInKey)
 	if ( (pInKey == NULL) || (b_NewKeysFilesLoaded == FALSE ) )
 		goto exit;			
 
-
 	__try 
 	{		
-		// now go and try to find the correct keyset for this 'version'
-		pKeySet = _keyset_find_for_pkg(KeyRev);	
-		if (pKeySet == NULL) {
-			printf("Error! Could not find key in new keys file.....\n");
+		// correct the 'endianness' for the hdr-type
+		MyHdrType = be16((u8*)&header_type);
+
+		switch (MyHdrType) 
+		{
+		// find the "PKG/SPKG" decrypt key
+		case SCE_HEADER_TYPE_PKG:
+
+			// now go and try to find the correct keyset for this 'version'
+			pKeySet = _keyset_find_for_pkg(KeyRev);	
+			if (pKeySet == NULL) {
+				printf("Error! Could not find PKG key in new keys file.....\n");
+				__leave;
+			}
+			break;
+
+		// find the "SPP" decrypt key
+		case SCE_HEADER_TYPE_SPP:
+
+			// now go and try to find the correct keyset for this 'version'
+			pKeySet = _keyset_find_for_spp(KeyRev);	
+			if (pKeySet == NULL) {
+				printf("Error! Could not find SPP key in new keys file.....\n");
+				__leave;
+			}
+			break;
+
+		default:
+			printf("Error!  Uknown header type specified:%x, exiting...\n", header_type);
 			__leave;
-		}
+
+		}; // end switch{}
 
 		// copy over the ERK (ie 'key')
 		if ( pKeySet->erk != NULL) {

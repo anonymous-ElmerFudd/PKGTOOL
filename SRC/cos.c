@@ -404,6 +404,9 @@ exit:
 			cos_files[i].ptr = NULL;
 		}
 	}
+	// free any alloc'd memory
+	if (pCosHdr != NULL)
+		free(pCosHdr);
 
 	return retval;
 }

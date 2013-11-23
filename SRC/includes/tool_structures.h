@@ -28,6 +28,7 @@ extern "C" {
 #define AES256_KEY_SIZE					0x20			// 256-bits
 #define AES128_KEY_SIZE					0x10			// 128-bits
 #define HMAC_KEY_SIZE					0x40			// 512-bits
+#define SPP_HMAC_KEY_SIZE				0x20			// 256-bits
 
 
 /*  DEFAULT CONFIG SETTINGS FROM 'SCETOOL' */
@@ -205,11 +206,18 @@ typedef struct _PKG_FILE_NAMES {
 /*************************************************************/
 
 
-
+// meta_hdr size for PKG
 typedef struct _META_HDR {
 	char data[0x260];
 } META_HDR;
 
+
+// meta_hdr size for SPP
+typedef struct _SPP_META_HDR {
+	char data[0x1E0];
+} SPP_META_HDR;
+
+// struct def. for total SPKG size
 typedef struct _SPKG_STRUCT {
 	char data[SIZE_SPKG_HDR];
 } SPKG_STRUCT;
