@@ -32,9 +32,7 @@ TARGETLIBS=$(SDK_LIB_PATH)\kernel32.lib \
 		   .\libs\ecdsa.lib \
 		   .\libs\sce.lib
 
-SOURCES=bn.c \
-		cos.c \
-		ec.c \
+SOURCES=cos.c \
 		pkg.c \
 		spkg.c \
 		tools.c \

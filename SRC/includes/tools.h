@@ -10,12 +10,8 @@
 
 #include "stdint.h"
 #include "types.h"
-
-
-#define ECDSA_ORG
-#ifndef ECDSA_ORG
 #include "ecdsa.h"
-#endif
+
 
 
 
@@ -55,6 +51,10 @@ extern "C" {
 /************************************************/
 
 
+#define		round_up(x,n)	(-(-(x) & -(n)))
+#define		array_size(x)	(sizeof(x) / sizeof(*(x)))
+
+
 enum sce_key {
 	KEY_LV0 = 0,
 	KEY_LV1,
@@ -67,15 +67,13 @@ enum sce_key {
 	KEY_SPP,
     KEY_NPDRM
 };
-#ifndef ECDSA_ORG
-int ecdsa_get_params_new(u32 type, ecdsa_context* p_ecdsa_ctx);
-#endif
 
+
+int ecdsa_get_params(u32 type, ecdsa_context* p_ecdsa_ctx);
 void print_hash(u8 *ptr, u32 len);
 int verify_sce_header (u8* pInPtr) ;
 const char *id2name(u32 id, struct id2name_tbl *t, const char *unk);
 void decompress(u8 *in, u64 in_len, u8 *out, u64 out_len);
-int get_rand(u8 *bfr, u32 size);
 
 int elf_read_hdr(u8 *hdr, struct elf_hdr *h);
 void elf_read_phdr(int arch64, u8 *phdr, struct elf_phdr *p);
@@ -91,7 +89,7 @@ int aes128cbc_enc(u8 *key, u8 *iv, u8 *in, u64 len, u8 *out);
 int aes128(u8 *key, const u8 *in, u8 *out);
 int aes128_enc(u8 *key, const u8 *in, u8 *out);
 
-int key_get(enum sce_key type, const char* suffix, struct key* pInKey);
+int key_get_old(enum sce_key type, const char* suffix, struct key* pInKey);
 int key_get_new(u16 KeyRev, u16 header_type, struct key *pInKey);
 int key_get_simple(const char *name, u8 *bfr, u32 len);
 struct keylist* keys_get(enum sce_key type);
@@ -113,26 +111,8 @@ int sce_encrypt_header_pkgtool(u8 *ptr, struct key *k);
 int sce_decrypt_data_pkgtool(u8 *ptr);
 int sce_encrypt_data_pkgtool(u8 *ptr);
 
-int ecdsa_get_params(u32 type, u8 *p, u8 *a, u8 *b, u8 *N, u8 *Gx, u8 *Gy);
-int ecdsa_set_curve_org(u32 type);
-void ecdsa_set_pub_org(u8 *Q);
-void ecdsa_set_priv_org(u8 *k);
-int ecdsa_verify_org(u8 *hash, u8 *R, u8 *S);
-void ecdsa_sign_org(u8 *hash, u8 *R, u8 *S);
-void bn_copy(u8 *d, u8 *a, u32 n);
-int bn_compare(u8 *a, u8 *b, u32 n);
-void bn_reduce(u8 *d, u8 *N, u32 n);
-void bn_add(u8 *d, u8 *a, u8 *b, u8 *N, u32 n);
-void bn_sub(u8 *d, u8 *a, u8 *b, u8 *N, u32 n);
-void bn_to_mon(u8 *d, u8 *N, u32 n);
-void bn_from_mon(u8 *d, u8 *N, u32 n);
-void bn_mon_mul(u8 *d, u8 *a, u8 *b, u8 *N, u32 n);
-void bn_mon_inv(u8 *d, u8 *a, u8 *N, u32 n);
-
-#define		round_up(x,n)	(-(-(x) & -(n)))
-
-#define		array_size(x)	(sizeof(x) / sizeof(*(x)))
-int get_random_char(void* ptr, uint8_t* outchar, size_t bufsize);
+int get_rand(u8 *bfr, u32 size);
+int get_random_char(void* ptr, uint8_t* pOutchar, size_t bufsize);
 int mem_swap_endian(u8* pInBuffer, uint32_t BufferSize);
 
 #ifdef __cplusplus

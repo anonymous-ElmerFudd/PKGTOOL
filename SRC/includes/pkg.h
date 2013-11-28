@@ -20,8 +20,6 @@ extern "C" {
 /// "pkg" functions
 int do_pkg_create(char* pInPath, char* pOutPath, char* pType, char* pKeyName, u64 OverrideFileSize);
 int get_content(char* filename, u8** ppContent, u64* pContent_size_original, u64* pContent_size_final, u8* pDoCompress, u64 OverrideFileSize);
-int get_key(const char *suffix, struct key* pMyKey);
-int get_key_spkg(void);
 int build_sce_hdr(sce_header_t* pSceHdr, u64 ContentSizeOriginal);
 int build_meta_hdr(META_HDR* pMetaHdr, u64 ContentSizeFinal, u8 bDoCompress);
 int fix_info_hdr(u8* pInfo0, u8* pInfo1, u64 ContentSizeOriginal, u64 ContentSizeFinal);

@@ -20,10 +20,8 @@
 #include "sce.h"
 #include "keys.h"
 #include "bignum.h"
-
-#ifndef ECDSA_ORG
 #include "ecdsa.h"
-#endif
+
 
 
 
@@ -39,12 +37,8 @@ extern uint8_t b_DebugModeEnabled;
 extern uint8_t b_DefaultKeyListOverride;
 extern int32_t g_bZlibCompressLevel;
 extern uint8_t b_OverrideFileSize;
+extern ecdsa_context ecdsa_ctx;
 
-
-
-#ifndef ECDSA_ORG
-ecdsa_context ecdsa_ctx;
-#endif
 
 //
 /////////////////////////////////////
@@ -168,93 +162,6 @@ exit:
 	return retval;
 }
 
-// func. for reading in the desired keyset
-int get_key(const char *suffix, struct key* pMyKey)
-{	
-	#ifndef ECDSA_ORG
-	my_ecp_point* pMyEcpPoint_pub = NULL;	
-	#endif
-	int retval = -1;
-
-	// validate params
-	if ( (suffix == NULL) || (pMyKey == NULL) )
-		goto exit;
-
-	//if (key_get_new(
-
-	if (key_get(KEY_PKG, suffix, pMyKey) < 0) {
-		printf("key_get() failed");
-		goto exit;
-	}
-
-	if (pMyKey->pub_avail < 0) {
-		printf("no public key available");
-		goto exit;
-	}
-
-	if (pMyKey->priv_avail < 0) {
-		printf("no private key available");
-		goto exit;
-	}
-
-	if (ecdsa_set_curve_org(pMyKey->ctype) < 0) {
-		printf("ecdsa_set_curve failed");
-		goto exit;
-	}
-	// setup the ECDSA pub/priv keys
-	ecdsa_set_pub_org(pMyKey->pub);
-	ecdsa_set_priv_org(pMyKey->priv);
-	retval = STATUS_SUCCESS;
-
-#ifndef ECDSA_ORG	
-	pMyEcpPoint_pub = (my_ecp_point*)pMyKey->pub;	
-	ecdsa_init( &ecdsa_ctx );		
-	retval = ecdsa_get_params_new(pMyKey->ctype, &ecdsa_ctx);	
-	mpi_read_binary(&ecdsa_ctx.Q.X, (unsigned char*)&pMyEcpPoint_pub->x, ECDSA_KEYSIZE);
-	mpi_read_binary(&ecdsa_ctx.Q.Y, (unsigned char*)&pMyEcpPoint_pub->y, ECDSA_KEYSIZE);
-	mpi_read_binary(&ecdsa_ctx.d, (unsigned char*)&pMyKey->priv, sizeof(pMyKey->priv));	
-	retval = STATUS_SUCCESS;
-#endif
-
-exit:
-	return retval;
-}
-
-// func. to get the "spkg" key
-int get_key_spkg(void)
-{
-	int retval = -1;
-	static struct key k, z = {0};
-
-	// find the SPKG key
-	if (key_get(KEY_SPKG, "retail", &z) < 0) {
-		printf("key_get() failed");
-		goto exit;
-	}
-	// check if 'pub' was found
-	if (z.pub_avail < 0) {
-		printf("no public key available");
-		goto exit;
-	}
-	// check if 'priv' was found
-	if (z.priv_avail < 0) {
-		printf("no private key available");
-		goto exit;
-	}
-	// set the ECDSA curve pts
-	if (ecdsa_set_curve_org(z.ctype) < 0) {
-		printf("ecdsa_set_curve failed");
-		goto exit;
-	}
-
-	// setup the ECDSA pub/priv keys
-	ecdsa_set_pub_org(z.pub);
-	ecdsa_set_priv_org(z.priv);
-	retval = STATUS_SUCCESS;
-
-exit:
-	return retval;
-}
 // func for building the SCE hdr
 int build_sce_hdr(sce_header_t* pSceHdr, u64 ContentSizeOriginal)
 {
@@ -267,13 +174,13 @@ int build_sce_hdr(sce_header_t* pSceHdr, u64 ContentSizeOriginal)
 
 	// populate the SCE-HDR fields for PKG build
 	pSce_Header = (sce_header_t*)pSceHdr;
-	memset(pSceHdr, 0, sizeof (sce_header_t));	
+	memset(pSceHdr, 0, sizeof(sce_header_t));	
 	wbe32((u8*)&pSce_Header->magic, SCE_HEADER_MAGIC);			// magic
 	wbe32((u8*)&pSce_Header->version, SCE_HEADER_VERSION_2);	// version
 	wbe16((u8*)&pSce_Header->key_revision, KEY_REVISION_0);		// key revision
 	wbe16((u8*)&pSce_Header->header_type, SCE_HEADER_TYPE_PKG);	// SCE header type; pkg
 	wbe32((u8*)&pSce_Header->metadata_offset, 0);				// meta offset
-	wbe64((u8*)&pSce_Header->header_len, sizeof (sce_header_t) + sizeof (META_HDR)); // header len
+	wbe64((u8*)&pSce_Header->header_len, sizeof(sce_header_t) + sizeof(META_HDR)); // header len
 	wbe64((u8*)&pSce_Header->data_len, 0x80 + ContentSizeOriginal);	
 	
 	// status success
@@ -472,12 +379,19 @@ int sign_pkg(u8* pInPkg)
 	u8 *r, *s = NULL;
 	u8 hash[20] = {0};
 	u64 sig_len = 0;
+	mpi r1;
+	mpi s1;
 	int retval = -1;
 
 	// validate input params
 	if (pInPkg == NULL)
 		goto exit;
 
+	// init the mpi
+	mpi_init(&r1);
+	mpi_init(&s1);
+
+	// setup the 'signature len'
 	sig_len = be64(pInPkg + 0x60);
 	r = pInPkg + sig_len;
 	s = r + 21;
@@ -486,21 +400,16 @@ int sign_pkg(u8* pInPkg)
 	sha1(pInPkg, (size_t)sig_len, hash);
 
 	// ecdsa sign the hash
-	#ifdef ECDSA_ORG
-	ecdsa_sign_org(hash, r, s);
-	#endif
+	if ( ecdsa_sign(&ecdsa_ctx.grp, (mpi*)&r1, (mpi*)&s1, &ecdsa_ctx.d, hash, ECDSA_KEYSIZE_PRIV, get_random_char, NULL) == STATUS_SUCCESS ) {		
+		mpi_write_binary(&r1, (unsigned char*)r, ECDSA_KEYSIZE_PRIV);
+		mpi_write_binary(&s1, (unsigned char*)s, ECDSA_KEYSIZE_PRIV);
 
-	#ifndef ECDSA_ORG
-	sig_len = ecdsa_sign(&ecdsa_ctx.grp, (mpi*)r, (mpi*)s, &ecdsa_ctx.d, hash, ECDSA_KEYSIZE, get_random_char, NULL);
-	//sig_len = ecdsa_sign(&ecdsa_ctx.grp, (mpi*)r, (mpi*)s, &ecdsa_ctx.d, hash, (size_t)sig_len, get_rand, NULL);	
-	#endif
-
-	// status success
-	retval = STATUS_SUCCESS;
+		// status success
+		retval = STATUS_SUCCESS;
+	}
 
 exit:
-	return retval;
-	
+	return retval;	
 }
 /**/
 /***************************************************************************************************************/
@@ -686,7 +595,7 @@ int decrypt_pkg(u8* pInPkg, u64* pDecSize, u32* pMetaOffset, char* pKeyName)
 			// failed to find the 'override' key in 'KEYS' file, 
 			// so try 'old-style' keys
 			printf("Error:  Failed to find override PKG key(%s) in new \"KEYS\" file, trying old style keys...\n", pKeyName);	
-			if ( key_get(KEY_PKG, pKeyName, &MyKey) == STATUS_SUCCESS ) 
+			if ( key_get_old(KEY_PKG, pKeyName, &MyKey) == STATUS_SUCCESS ) 
 			{
 				// now populate the "keylist*" with the key we just found
 				if ( load_keylist_from_key(&pMyKeyList, &MyKey) != STATUS_SUCCESS )
@@ -837,7 +746,7 @@ int do_pkg_create(char* pInPath, char* pOutPath, char* pType, char* pKeyName, u6
 			// failed to find the 'override' key in 'KEYS' file, 
 			// so try 'old-style' keys
 			printf("Error:  Failed to find override PKG key(%s) in new \"KEYS\" file, trying old style keys...\n", pKeyName);	
-			if ( key_get(KEY_PKG, pKeyName, &MyKey) == STATUS_SUCCESS ) 
+			if ( key_get_old(KEY_PKG, pKeyName, &MyKey) == STATUS_SUCCESS ) 
 			{
 				if ( load_keylist_from_key(&pMyKeyList, &MyKey) != STATUS_SUCCESS )
 				{
@@ -922,7 +831,7 @@ int do_pkg_create(char* pInPath, char* pOutPath, char* pType, char* pKeyName, u6
 				// failed to find the 'override' key in 'KEYS' file, 
 				// so try 'old-style' keys
 				printf("Error:  Failed to find override PKG key(%s) in new \"KEYS\" file, trying old style keys...\n", pKeyName);	
-				if ( key_get(KEY_PKG, pKeyName, &MyKey) == STATUS_SUCCESS ) 
+				if ( key_get_old(KEY_PKG, pKeyName, &MyKey) == STATUS_SUCCESS ) 
 				{
 					if ( load_keylist_from_key(&pMyKeyList, &MyKey) != STATUS_SUCCESS )
 					{

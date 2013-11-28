@@ -53,11 +53,12 @@ extern "C" {
 /*				ECDSA STRUCTURES							  */
 
 
-#define ECDSA_KEYSIZE					0x14			// 160-bits
+#define ECDSA_KEYSIZE_PUB				0x14			// 160-bits
+#define ECDSA_KEYSIZE_PRIV				0x15			// 168-bits
 
 typedef struct _my_ecp_point {
-	u8 x[ECDSA_KEYSIZE];
-	u8 y[ECDSA_KEYSIZE];
+	u8 x[ECDSA_KEYSIZE_PUB];
+	u8 y[ECDSA_KEYSIZE_PUB];
 } my_ecp_point;
 
 /*                                                           */

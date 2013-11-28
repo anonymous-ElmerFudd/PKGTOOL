@@ -91,7 +91,7 @@ int decrypt_spkg(u8* pInSpkg, u64* pDecSize, char* pKeyName)
 			// failed to find the 'override' key in 'KEYS' file, 
 			// so try 'old-style' keys
 			printf("Error:  Failed to find override SPKG key(%s) in new \"KEYS\" file, trying old style keys...\n", pKeyName);	
-			if ( key_get(KEY_SPKG, pKeyName, &MyKey) == STATUS_SUCCESS ) 
+			if ( key_get_old(KEY_SPKG, pKeyName, &MyKey) == STATUS_SUCCESS ) 
 			{
 				// now populate the "keylist*" with the key we just found
 				if ( load_keylist_from_key(&pMyKeyList, &MyKey) != STATUS_SUCCESS )

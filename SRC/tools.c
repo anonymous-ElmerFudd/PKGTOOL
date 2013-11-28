@@ -19,10 +19,8 @@
 #include "tools.h"
 #include "sce.h"
 #include "keys.h"
-
-#ifndef ECDSA_ORG
 #include "ecdsa.h"
-#endif
+
 
 
 
@@ -52,6 +50,8 @@ extern uint8_t b_DebugModeEnabled;
 /* new keys files loaded */
 extern uint8_t b_NewKeysFilesLoaded;
 
+// structure for the ECDSA parameters
+ecdsa_context ecdsa_ctx;
 
 static struct id2name_tbl t_key2file[] = {
         {TRUE, KEY_LV0, "lv0"},
@@ -111,45 +111,7 @@ const char *id2name(u32 id, struct id2name_tbl *t, const char *unk)
 	}
 	return unk;
 }
-// func. for GetRand  
-int get_rand(u8 *bfr, u32 size)
-{
-	HCRYPTPROV hProv = 0;
-	u32 i = 0;
-	int retval = -1;
 
-	// valid input params
-	if ( bfr == NULL)
-		goto exit;
-
-	// init the crypto
-	if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
-		printf("unable to open random\n");
-		goto exit;
-	}
-	//gen the random nums
-	if (!CryptGenRandom(hProv, size, bfr)) {
-		printf("unable to read random numbers\n");
-		goto exit;
-	}
-	// close the crypto handle
-	CryptReleaseContext(hProv, 0);
-
-	///////		DEBUG RNG OVERRIDE		////////////
-	// if running "ebug" mode, then 
-	// use static values of "0x11 0x11 0x11...."
-	if (b_DebugModeEnabled == TRUE) {
-		for (i = 0;i < size; i++)
-			bfr[i] = 0x11;
-	}
-	////////////////////////////////////////////////
-
-	// status success
-	retval = STATUS_SUCCESS;
-
-exit:
-	return retval;
-}
 
 //
 // ELF helpers
@@ -595,12 +557,12 @@ struct keylist* keys_get(enum sce_key type)
 				klist->keys = tmp;
 				memset(&klist->keys[klist->n], 0, sizeof(struct key));
 
-				sprintf_s(path, sizeof path, "%s/%s-key-%s", base, name, id);
+				sprintf_s(path, sizeof(path), "%s/%s-key-%s", base, name, id);
 				if (key_read(path, 32, klist->keys[klist->n].key) != 0) {
 					printf("  key file:   %s (ERROR)\n", path);
 				}
 
-				sprintf_s(path, sizeof path, "%s/%s-iv-%s", base, name, id);
+				sprintf_s(path, sizeof(path), "%s/%s-iv-%s", base, name, id);
 				if (key_read(path, AES128_KEY_SIZE, klist->keys[klist->n].iv) != 0) {
 					printf("  iv file:    %s (ERROR)\n", path);
 				}
@@ -608,9 +570,9 @@ struct keylist* keys_get(enum sce_key type)
 				klist->keys[klist->n].pub_avail = -1;
 				klist->keys[klist->n].priv_avail = -1;
 
-				sprintf_s(path, sizeof path, "%s/%s-pub-%s", base, name, id);
+				sprintf_s(path, sizeof(path), "%s/%s-pub-%s", base, name, id);
 				if (key_read(path, 40, klist->keys[klist->n].pub) == 0) {
-					sprintf_s(path, sizeof path, "%s/%s-ctype-%s", base, name, id);
+					sprintf_s(path, sizeof(path), "%s/%s-ctype-%s", base, name, id);
 					key_read(path, 4, bfr);
 
 					klist->keys[klist->n].pub_avail = 1;
@@ -619,7 +581,7 @@ struct keylist* keys_get(enum sce_key type)
 					printf("  pub file:   %s (ERROR)\n", path);
 				}
 
-				sprintf_s(path, sizeof path, "%s/%s-priv-%s", base, name, id);
+				sprintf_s(path, sizeof(path), "%s/%s-priv-%s", base, name, id);
 				if (key_read(path, 21, klist->keys[klist->n].priv) == 0) {
 					klist->keys[klist->n].priv_avail = 1;
 				} else {
@@ -638,7 +600,7 @@ struct keylist* keys_get(enum sce_key type)
 			if (klist->idps == NULL)
 				__leave;
 
-			sprintf_s(path, sizeof (path), "%s/idps", base);
+			sprintf_s(path, sizeof(path), "%s/idps", base);
 			if (key_read(path, AES128_KEY_SIZE, klist->idps->key) != 0) {
 				printf("  key file:   %s (ERROR)\n", path);
 			}
@@ -647,7 +609,7 @@ struct keylist* keys_get(enum sce_key type)
 			if (klist->klic == NULL)
 				__leave;
 
-			sprintf_s(path, sizeof (path), "%s/klic-key", base);
+			sprintf_s(path, sizeof(path), "%s/klic-key", base);
 			if (key_read(path, AES128_KEY_SIZE, klist->klic->key) != 0) {
 				printf("  key file:   %s (ERROR)\n", path);
 			}
@@ -656,7 +618,7 @@ struct keylist* keys_get(enum sce_key type)
 			if (klist->rif == NULL)
 				__leave;
 
-			sprintf_s(path, sizeof path, "%s/rif-key", base);
+			sprintf_s(path, sizeof(path), "%s/rif-key", base);
 			if (key_read(path, AES128_KEY_SIZE, klist->rif->key) != 0) {
 				printf("  key file:   %s (ERROR)\n", path);
 			}
@@ -665,7 +627,7 @@ struct keylist* keys_get(enum sce_key type)
 			if (klist->npdrm_const == NULL)
 				__leave;
 
-			sprintf_s(path, sizeof path, "%s/npdrm-const", base);
+			sprintf_s(path, sizeof(path), "%s/npdrm-const", base);
 			if (key_read(path, AES128_KEY_SIZE, klist->npdrm_const->key) != 0) {
 				printf("  key file:   %s (ERROR)\n", path);
 			}
@@ -674,7 +636,7 @@ struct keylist* keys_get(enum sce_key type)
 			if (klist->free_klicensee == NULL)
 				__leave;
 
-			sprintf_s(path, sizeof path, "%s/free_klicensee-key", base);
+			sprintf_s(path, sizeof(path), "%s/free_klicensee-key", base);
 			if (key_read(path, AES128_KEY_SIZE, klist->free_klicensee->key) != 0) {
 				printf("  key file:   %s (ERROR)\n", path);
 			}
@@ -734,8 +696,9 @@ exit:
 }
 
 // func for finding 'old style' key set via direct 'keyname' specified
-int key_get(enum sce_key type, const char* suffix, struct key* pInKey)
+int key_get_old(enum sce_key type, const char* suffix, struct key* pInKey)
 {
+	my_ecp_point* pMyEcpPoint_pub = NULL;	
 	const char *name = "";
 	const char *rev = "";
 	char base[MAX_PATH] = {0};
@@ -823,6 +786,20 @@ int key_get(enum sce_key type, const char* suffix, struct key* pInKey)
 		/**/
 		/*******************************************************************/
 
+		// read in the ECDSA curve parameters
+		ecdsa_init( &ecdsa_ctx );		
+		if ( ecdsa_get_params(pInKey->ctype, &ecdsa_ctx) != STATUS_SUCCESS )
+			__leave;
+
+		// read in the pub points Q.x, Q.y, & priv key 'D'
+		pMyEcpPoint_pub = (my_ecp_point*)pInKey->pub;	
+		if ( mpi_read_binary(&ecdsa_ctx.Q.X, (unsigned char*)&pMyEcpPoint_pub->x, ECDSA_KEYSIZE_PUB) != 0 )
+			__leave;
+		if ( mpi_read_binary(&ecdsa_ctx.Q.Y, (unsigned char*)&pMyEcpPoint_pub->y, ECDSA_KEYSIZE_PUB) != 0 )
+			__leave;
+		if ( mpi_read_binary(&ecdsa_ctx.d, (unsigned char*)&pInKey->priv, sizeof(pInKey->priv)) != 0 )
+			__leave;
+
 		// status success
 		retval = STATUS_SUCCESS;
 
@@ -848,9 +825,9 @@ int key_get_new(u16 KeyRev, u16 header_type, struct key *pInKey)
 {
 	keyset_t *pKeySet = NULL;
 	u16 MyHdrType = 0;
+	my_ecp_point* pMyEcpPoint_pub = NULL;	
 	int retval = -1;
-
-
+	
 
 
 	// validate input params
@@ -927,16 +904,23 @@ int key_get_new(u16 KeyRev, u16 header_type, struct key *pInKey)
 		}
 		/* if we found the keyset in the 'keys' file  */
 		// status success
-		pInKey->pub_avail = pInKey->priv_avail = 1;
+		pInKey->pub_avail = pInKey->priv_avail = 1;					
 
-		// setup the ECDSA params
-		if (ecdsa_set_curve_org(pInKey->ctype) < 0) {
-			printf("ecdsa_set_curve failed");
+		// read in the ECDSA curve parameters
+		ecdsa_init( &ecdsa_ctx );		
+		if ( ecdsa_get_params(pInKey->ctype, &ecdsa_ctx) != STATUS_SUCCESS )
 			__leave;
-		}
-		// setup the ECDSA pub/priv keys
-		ecdsa_set_pub_org(pInKey->pub);
-		ecdsa_set_priv_org(pInKey->priv);
+
+		// read in the pub points Q.x, Q.y, & priv key 'D'
+		pMyEcpPoint_pub = (my_ecp_point*)pInKey->pub;	
+		if ( mpi_read_binary(&ecdsa_ctx.Q.X, (unsigned char*)&pMyEcpPoint_pub->x, ECDSA_KEYSIZE_PUB) != 0 )
+			__leave;
+		if ( mpi_read_binary(&ecdsa_ctx.Q.Y, (unsigned char*)&pMyEcpPoint_pub->y, ECDSA_KEYSIZE_PUB) != 0 )
+			__leave;
+		if ( mpi_read_binary(&ecdsa_ctx.d, (unsigned char*)&pInKey->priv, sizeof(pInKey->priv)) != 0 )
+			__leave;
+		
+		// status success
 		retval = STATUS_SUCCESS;
 
 	} // end try{}
@@ -1016,14 +1000,6 @@ int load_keylist_from_key(struct keylist** ppInKeyList, struct key* pInKey)
 		pMyKeyList->keys[0].pub_avail = pMyKeyList->keys[0].priv_avail = 1;
 		pMyKeyList->n++;	
 
-		// setup the ECDSA params
-		if (ecdsa_set_curve_org(pMyKeyList->keys[0].ctype) < 0) {
-			printf("ecdsa_set_curve failed");
-			__leave;
-		}
-		// setup the ECDSA pub/priv keys
-		ecdsa_set_pub_org(pMyKeyList->keys[0].pub);
-		ecdsa_set_priv_org(pMyKeyList->keys[0].priv);
 		*ppInKeyList = 	pMyKeyList;
 		retval = STATUS_SUCCESS;
 
@@ -1047,6 +1023,7 @@ exit:
 /***************************************************************************/
 int load_singlekey_by_name(char* pKeyName, struct keylist** ppInKeyList)
 {	
+	my_ecp_point* pMyEcpPoint_pub = NULL;	
 	struct keylist* pMyKeyList = NULL;
 	keyset_t *pKeySet = NULL;
 	struct key* pKey = NULL;
@@ -1121,14 +1098,19 @@ int load_singlekey_by_name(char* pKeyName, struct keylist** ppInKeyList)
 		pMyKeyList->keys[0].pub_avail = pMyKeyList->keys[0].priv_avail = 1;
 		pMyKeyList->n++;
 
-		// setup the ECDSA params
-		if (ecdsa_set_curve_org(pMyKeyList->keys[0].ctype) < 0) {
-			printf("ecdsa_set_curve failed");
+		// read in the ECDSA curve parameters
+		ecdsa_init( &ecdsa_ctx );		
+		if ( ecdsa_get_params(pMyKeyList->keys[0].ctype, &ecdsa_ctx) != STATUS_SUCCESS )
 			__leave;
-		}
-		// set the ECDSA pub/priv keys
-		ecdsa_set_pub_org(pMyKeyList->keys[0].pub);
-		ecdsa_set_priv_org(pMyKeyList->keys[0].priv);
+
+		// read in the pub points Q.x, Q.y, & priv key 'D'
+		pMyEcpPoint_pub = (my_ecp_point*)pMyKeyList->keys[0].pub;	
+		if ( mpi_read_binary(&ecdsa_ctx.Q.X, (unsigned char*)&pMyEcpPoint_pub->x, ECDSA_KEYSIZE_PUB) != 0 )
+			__leave;
+		if ( mpi_read_binary(&ecdsa_ctx.Q.Y, (unsigned char*)&pMyEcpPoint_pub->y, ECDSA_KEYSIZE_PUB) != 0 )
+			__leave;
+		if ( mpi_read_binary(&ecdsa_ctx.d, (unsigned char*)&pMyKeyList->keys[0].priv, sizeof(pMyKeyList->keys[0].priv)) != 0 )
+			__leave;
 
 		// status success
 		retval = STATUS_SUCCESS;
@@ -1300,6 +1282,8 @@ int load_keys_files(void)
 	else
 		sprintf_s(keypath, MAX_PATH, "%s/%s", CONFIG_CURVES_PATH, CONFIG_CURVES_FILE);	
 
+	/*********************************************/
+	/* load the 'scetool' compatible 'CURVES' file */
 	if ( curves_load(keypath) != TRUE ) {
 		printf("Error:  Failed to load the 'curves' file, reverting to old keys files....\n");
 		goto exit;
@@ -1317,7 +1301,8 @@ int load_keys_files(void)
 	else
 		sprintf_s(path, MAX_PATH, "%s/%s", CONFIG_VSH_CURVES_PATH, CONFIG_VSH_CURVES_FILE);
 
-	// load the 'vsh curves' file
+	/*********************************************/
+	/* load the 'scetool' compatible 'VSH_CURVES' file */
 	if ( vsh_curves_load(keypath) != TRUE ) {
 		printf("Error:  Failed to load the 'vsh curves' file, reverting to old keys files....\n");
 		goto exit;
@@ -1437,9 +1422,10 @@ static void memcpy_inv(u8 *dst, u8 *src, u32 len)
 		dst[j] = ~src[j];
 }
 // func. to setup the ECDSA params
-int ecdsa_get_params(u32 type, u8 *p, u8 *a, u8 *b, u8 *N, u8 *Gx, u8 *Gy)
+int ecdsa_get_params(u32 type, ecdsa_context* p_ecdsa_ctx)
 {
 	static u8 tbl[64 * 121] = {0};
+	static u8 inv_tbl[64 * 121] = {0};
 	char path[MAX_PATH] = {0};
 	u32 offset = 0;
 	curve_t* pCurveParams = NULL;
@@ -1447,9 +1433,8 @@ int ecdsa_get_params(u32 type, u8 *p, u8 *a, u8 *b, u8 *N, u8 *Gx, u8 *Gy)
 
 
 	// validate input params
-	if ( (p == NULL) || (a == NULL) || (b == NULL) || (N == NULL) || (Gx == NULL) || (Gy == NULL) )
+	if ( p_ecdsa_ctx == NULL ) 
 		goto exit;
-
 
 	// if we have the NEW 'keys/curves/etc' files loaded,
 	// then look for the curves file there, otherwise,
@@ -1472,14 +1457,41 @@ int ecdsa_get_params(u32 type, u8 *p, u8 *a, u8 *b, u8 *N, u8 *Gx, u8 *Gy)
 			if((pCurveParams = curve_find((u8)type)) == NULL) {
 				printf("Error:  Could not find key in 'curves' file, exiting...\n");
 				goto exit;			
-			}	
-			// copy over the ECDSA params
-			memcpy_inv(p, (u8*)&pCurveParams->p, sizeof(pCurveParams->p));
-			memcpy_inv(a, (u8*)&pCurveParams->a, sizeof(pCurveParams->a));
-			memcpy_inv(b, (u8*)&pCurveParams->b, sizeof(pCurveParams->b));
-			memcpy_inv(N, (u8*)&pCurveParams->N, sizeof(pCurveParams->N));
-			memcpy_inv(Gx, (u8*)&pCurveParams->Gx, sizeof(pCurveParams->Gx));
-			memcpy_inv(Gy, (u8*)&pCurveParams->Gy, sizeof(pCurveParams->Gy));
+			}			
+			
+			// need to invert all the bytes
+			memcpy_inv( (u8*)pCurveParams, (u8*)pCurveParams, sizeof(curve_t) );			
+
+			// read in the ECDSA curve param - "P"
+			if (mpi_read_binary(&ecdsa_ctx.grp.P, (u8*)&pCurveParams->p, sizeof(pCurveParams->p)) != 0)
+				goto exit;
+
+			// read in the ECDSA curve param - "A"
+			if (mpi_read_binary(&ecdsa_ctx.grp.A, (u8*)&pCurveParams->a, sizeof(pCurveParams->a)) != 0)
+				goto exit;
+
+			// read in the ECDSA curve param - "B"
+			if (mpi_read_binary(&ecdsa_ctx.grp.B, (u8*)&pCurveParams->b, sizeof(pCurveParams->b)) != 0)
+				goto exit;
+
+			// read in the ECDSA curve param - "N"
+			if (mpi_read_binary(&ecdsa_ctx.grp.N, (u8*)&pCurveParams->N, sizeof(pCurveParams->N)) != 0)
+				goto exit;
+
+			// read in the ECDSA curve param - "Gx"
+			if (mpi_read_binary(&ecdsa_ctx.grp.G.X, (u8*)&pCurveParams->Gx, sizeof(pCurveParams->Gx)) != 0)
+				goto exit;
+
+			// read in the ECDSA curve param - "Gy"
+			if (mpi_read_binary(&ecdsa_ctx.grp.G.Y, (u8*)&pCurveParams->Gy, sizeof(pCurveParams->Gy)) != 0)		
+				goto exit;	
+
+			// set the "G.Z" co-ordinate as "1"
+			mpi_lset( &ecdsa_ctx.grp.G.Z, 1 );
+
+			// setup the number of bits in 'p' and 'n'
+			ecdsa_ctx.grp.pbits = mpi_msb( &ecdsa_ctx.grp.P );
+			ecdsa_ctx.grp.nbits = mpi_msb( &ecdsa_ctx.grp.N );
 		}
 	}
 	//////  USE 'OLD FILES METHOD	/////////////////////////////////////////
@@ -1491,23 +1503,51 @@ int ecdsa_get_params(u32 type, u8 *p, u8 *a, u8 *b, u8 *N, u8 *Gx, u8 *Gy)
 
 		// finding 'vsh curves' (or 'curves' file)
 		if(type & USE_VSH_CURVE)			 
-			strncat_s(path, MAX_PATH, "/vsh_curves", sizeof path);
+			strncat_s(path, MAX_PATH, "/vsh_curves", sizeof(path));
 		else 
-			strncat_s(path, MAX_PATH, "/curves", sizeof path);
+			strncat_s(path, MAX_PATH, "/curves", sizeof(path));
 		// read in the curves(or vsh_curves) file
-		if (key_read(path, sizeof tbl, tbl) < 0)
+		if (key_read(path, sizeof(tbl), tbl) < 0)
+			goto exit;	
+
+		// make a copy of the full keys table, 
+		// with all bytes inverted
+		memcpy_inv(inv_tbl, tbl, sizeof(tbl));	
+	
+		// setup the ptr at the index into the 'curves' file
+		offset = type * sizeof(curve_t);
+		pCurveParams = (curve_t*)(inv_tbl + offset);
+
+		// read in the ECDSA curve param - "P"
+		if (mpi_read_binary(&ecdsa_ctx.grp.P, (u8*)&pCurveParams->p, sizeof(pCurveParams->p)) != 0)
 			goto exit;
 
-		// setup the offset to the curve, 
-		// at the ptr to the key 'struct'
-		offset = type * sizeof(curve_t);
-		pCurveParams = (curve_t*)(tbl + offset);
-		memcpy_inv(p, (u8*)&pCurveParams->p, sizeof(pCurveParams->p));
-		memcpy_inv(a, (u8*)&pCurveParams->a, sizeof(pCurveParams->a));
-		memcpy_inv(b, (u8*)&pCurveParams->b, sizeof(pCurveParams->b));
-		memcpy_inv(N, (u8*)&pCurveParams->N, sizeof(pCurveParams->N));
-		memcpy_inv(Gx, (u8*)&pCurveParams->Gx, sizeof(pCurveParams->Gx));
-		memcpy_inv(Gy, (u8*)&pCurveParams->Gy, sizeof(pCurveParams->Gy));
+		// read in the ECDSA curve param - "A"
+		if (mpi_read_binary(&ecdsa_ctx.grp.A, (u8*)&pCurveParams->a, sizeof(pCurveParams->a)) != 0)
+			goto exit;
+
+		// read in the ECDSA curve param - "B"
+		if (mpi_read_binary(&ecdsa_ctx.grp.B, (u8*)&pCurveParams->b, sizeof(pCurveParams->b)) != 0)
+			goto exit;
+
+		// read in the ECDSA curve param - "N"
+		if (mpi_read_binary(&ecdsa_ctx.grp.N, (u8*)&pCurveParams->N, sizeof(pCurveParams->N)) != 0)
+			goto exit;
+
+		// read in the ECDSA curve param - "Gx"
+		if (mpi_read_binary(&ecdsa_ctx.grp.G.X, (u8*)&pCurveParams->Gx, sizeof(pCurveParams->Gx)) != 0)
+			goto exit;
+
+		// read in the ECDSA curve param - "Gy"
+		if (mpi_read_binary(&ecdsa_ctx.grp.G.Y, (u8*)&pCurveParams->Gy, sizeof(pCurveParams->Gy)) != 0)		
+			goto exit;	
+
+		// set the "G.Z" co-ordinate as "1"
+		mpi_lset( &ecdsa_ctx.grp.G.Z, 1 );
+
+		// setup the number of bits in 'p' and 'n'
+		ecdsa_ctx.grp.pbits = mpi_msb( &ecdsa_ctx.grp.P );
+		ecdsa_ctx.grp.nbits = mpi_msb( &ecdsa_ctx.grp.N );
 	}
 	//
 	//////////////////////////////////////////////////////////////////
@@ -1519,88 +1559,6 @@ exit:
 	return retval;
 }
 /*************************************************************************/
-
-
-#ifndef ECDSA_ORG
-int ecdsa_get_params_new(u32 type, ecdsa_context* p_ecdsa_ctx)
-{
-	static u8 tbl[64 * 121] = {0};
-	static u8 inv_tbl[64 * 121] = {0};
-	char path[MAX_PATH] = {0};
-	u32 offset = 0;
-	//ECDSA_KEY_FORMAT* pEcdsaKey = NULL;	
-	curve_t* pCurveParams = NULL;
-	int retval = -1;
-	
-	
-
-	// verify input params
-	if (p_ecdsa_ctx == NULL)
-		goto exit;
-
-	// verify 'type' is valid
-	if (type >= 64)
-		goto exit;
-
-	// build the default key path
-	if (key_build_path(path) < 0)
-		goto exit;
-
-	// build the path for the 'curves' file
-	strncat_s(path, MAX_PATH, "/curves", sizeof path);
-	if (key_read(path, sizeof(tbl), tbl) < 0)
-		goto exit;
-
-	// make a copy of the full keys table, 
-	// with all bytes inverted
-	memcpy_inv(inv_tbl, tbl, sizeof(tbl));
-	
-	
-	// setup the ptr at the index into the 'curves' file
-	offset = type * sizeof(curve_t);
-	pCurveParams = (curve_t*)(tbl + offset);
-
-	// read in the ECDSA curve param - "P"
-	if (mpi_read_binary(&p_ecdsa_ctx->grp.P, (u8*)&pCurveParams->p, sizeof(pCurveParams->p)) != 0)
-		goto exit;
-
-	// read in the ECDSA curve param - "A"
-	if (mpi_read_binary(&p_ecdsa_ctx->grp.A, (u8*)&pCurveParams->a, sizeof(pCurveParams->a)) != 0)
-		goto exit;
-
-	// read in the ECDSA curve param - ".
-	if (mpi_read_binary(&p_ecdsa_ctx->grp.B, (u8*)&pCurveParams->b, sizeof(pCurveParams->b)) != 0)
-		goto exit;
-
-	// read in the ECDSA curve param - "N"
-	if (mpi_read_binary(&p_ecdsa_ctx->grp.N, (u8*)&pCurveParams->N, sizeof(pCurveParams->N)) != 0)
-		goto exit;
-
-	// read in the ECDSA curve param - "Gx"
-	if (mpi_read_binary(&p_ecdsa_ctx->grp.G.X, (u8*)&pCurveParams->Gx, sizeof(pCurveParams->Gx)) != 0)
-		goto exit;
-
-	// read in the ECDSA curve param - "Gy"
-	if (mpi_read_binary(&p_ecdsa_ctx->grp.G.Y, (u8*)&pCurveParams->Gy, sizeof(pCurveParams->Gy)) != 0)		
-		goto exit;	
-
-	// set the "G.Z" co-ordinate as "1"
-	mpi_lset( &p_ecdsa_ctx->grp.G.Z, 1 );
-
-	// setup the number of bits in 'p' and 'n'
-	p_ecdsa_ctx->grp.pbits = mpi_msb( &p_ecdsa_ctx->grp.P );
-    p_ecdsa_ctx->grp.nbits = mpi_msb( &p_ecdsa_ctx->grp.N );
-
-	//keys_load("test");
-
-	// status success
-	retval = STATUS_SUCCESS;
-	
-exit:
-	// return our status
-	return retval;
-}
-#endif
 
 // func to removed npdrm
 int sce_remove_npdrm(u8 *ptr, struct keylist *klist)
@@ -1911,35 +1869,94 @@ int sce_encrypt_data_pkgtool(u8 *ptr)
 }
 /**/
 /******************************************************************************/
-int get_random_char(void* ptr, uint8_t* outchar, size_t bufsize)
+
+
+// func. for GetRand  
+int get_rand(u8 *bfr, u32 size)
 {
-	size_t i = 0;
-	int temp = 0;
+	HCRYPTPROV hProv = 0;
+	u32 i = 0;
+	int retval = -1;
 
-	UNREFERENCED_PARAMETER(ptr);
+	// valid input params
+	if ( bfr == NULL)
+		goto exit;
 
+	// init the crypto
+	if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+		printf("unable to open random\n");
+		goto exit;
+	}
+	//gen the random nums
+	if (!CryptGenRandom(hProv, size, bfr)) {
+		printf("unable to read random numbers\n");
+		goto exit;
+	}
+	// close the crypto handle
+	CryptReleaseContext(hProv, 0);
 
 	///////		DEBUG RNG OVERRIDE		////////////
 	// if running "ebug" mode, then 
 	// use static values of "0x11 0x11 0x11...."
-	if (b_DebugModeEnabled == TRUE)
-	{
-		for (i = 0;i < bufsize; i++)
-			outchar[i] = 0x11;
+	if (b_DebugModeEnabled == TRUE) {
+		for (i = 0;i < size; i++)
+			bfr[i] = 0x11;
 	}
-	else
-	{
-		// fill the incoming buffer with rand. data
-		for (i = 0; i < bufsize; i++) 
-		{
-			temp = 0;
-			while (temp == 0)
-				temp = rand();			
-			outchar[i] = (uint8_t)temp;
-		}	
-	}	
-	return 0x00;
+	////////////////////////////////////////////////
+
+	// status success
+	retval = STATUS_SUCCESS;
+
+exit:
+	return retval;
 }
+
+// func for generating random chars
+int get_random_char(void* ptr, uint8_t* pOutchar, size_t bufsize)
+{
+	HCRYPTPROV hProv = 0;
+	size_t i = 0;
+	int retval = -1;
+
+
+	UNREFERENCED_PARAMETER(ptr);
+
+	// validate input params
+	if ( (pOutchar == NULL)  )
+		goto exit;
+
+
+	// init the crypto
+	if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+		printf("unable to open random\n");
+		goto exit;
+	}
+	
+	///////		DEBUG RNG OVERRIDE		////////////
+	// if running "ebug" mode, then 
+	// use static values of "0x11 0x11 0x11...."	
+	if (b_DebugModeEnabled == TRUE)	{
+		for (i = 0;i < bufsize; i++)
+			pOutchar[i] = 0x11;
+	}
+	else {
+		//gen the random nums
+		if (!CryptGenRandom(hProv, (DWORD)bufsize, (BYTE*)pOutchar)) {
+			printf("unable to read random numbers\n");
+			goto exit;
+		}		
+	}	
+
+	// close out the CryptContext
+	// status success
+	CryptReleaseContext(hProv, 0);
+	retval = STATUS_SUCCESS;
+
+exit:
+	return retval;
+}
+
+
 // func. for swapping endianess of a buffer
 int mem_swap_endian(u8* pInBuffer, uint32_t BufferSize)
 {

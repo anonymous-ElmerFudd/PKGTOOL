@@ -29,6 +29,7 @@
 
 extern uint8_t b_DebugModeEnabled;
 extern uint8_t b_DefaultKeyListOverride;
+extern ecdsa_context ecdsa_ctx;
 
 //
 /////////////////////////////////////
@@ -150,13 +151,13 @@ int build_spp_sce_hdr(sce_header_t* pSceHdr, u64 ContentSizeOriginal)
 
 	// populate the SCE-HDR fields for PKG build
 	pSce_Header = (sce_header_t*)pSceHdr;
-	memset(pSceHdr, 0, sizeof (sce_header_t));	
+	memset(pSceHdr, 0, sizeof(sce_header_t));	
 	wbe32((u8*)&pSce_Header->magic, SCE_HEADER_MAGIC);			// magic
 	wbe32((u8*)&pSce_Header->version, SCE_HEADER_VERSION_2);	// version
 	wbe16((u8*)&pSce_Header->key_revision, KEY_REVISION_0);		// key revision
 	wbe16((u8*)&pSce_Header->header_type, SCE_HEADER_TYPE_SPP);	// SCE header type; pkg
 	wbe32((u8*)&pSce_Header->metadata_offset, 0);				// meta offset
-	wbe64((u8*)&pSce_Header->header_len, sizeof (sce_header_t) + sizeof (SPP_META_HDR)); // header len
+	wbe64((u8*)&pSce_Header->header_len, sizeof(sce_header_t) + sizeof(SPP_META_HDR)); // header len
 	wbe64((u8*)&pSce_Header->data_len, ContentSizeOriginal);	
 	
 	// status success
@@ -214,12 +215,19 @@ int sign_spp(u8* pInSpp)
 	u8 *r, *s = NULL;
 	u8 hash[20] = {0};
 	u64 sig_len = 0;
+	mpi r1;
+	mpi s1;
 	int retval = -1;
 
 	// validate input params
 	if (pInSpp == NULL)
 		goto exit;
 
+	// init the mpi
+	mpi_init(&r1);
+	mpi_init(&s1);
+
+	// setup the 'signature len'
 	sig_len = be64(pInSpp + 0x60);
 	r = pInSpp + sig_len;
 	s = r + 21;
@@ -228,21 +236,16 @@ int sign_spp(u8* pInSpp)
 	sha1(pInSpp, (size_t)sig_len, hash);
 
 	// ecdsa sign the hash
-	#ifdef ECDSA_ORG
-	ecdsa_sign_org(hash, r, s);
-	#endif
+	if ( ecdsa_sign(&ecdsa_ctx.grp, (mpi*)&r1, (mpi*)&s1, &ecdsa_ctx.d, hash, ECDSA_KEYSIZE_PRIV, get_random_char, NULL) == STATUS_SUCCESS ) {		
+		mpi_write_binary(&r1, (unsigned char*)r, ECDSA_KEYSIZE_PRIV);
+		mpi_write_binary(&s1, (unsigned char*)s, ECDSA_KEYSIZE_PRIV);
 
-	#ifndef ECDSA_ORG
-	sig_len = ecdsa_sign(&ecdsa_ctx.grp, (mpi*)r, (mpi*)s, &ecdsa_ctx.d, hash, ECDSA_KEYSIZE, get_random_char, NULL);
-	//sig_len = ecdsa_sign(&ecdsa_ctx.grp, (mpi*)r, (mpi*)s, &ecdsa_ctx.d, hash, (size_t)sig_len, get_rand, NULL);	
-	#endif
-
-	// status success
-	retval = STATUS_SUCCESS;
+		// status success
+		retval = STATUS_SUCCESS;
+	}
 
 exit:
-	return retval;
-	
+	return retval;	
 }
 /**/
 /***************************************************************************************************************/
@@ -301,7 +304,7 @@ int decrypt_spp(u8* pInSpp, u64* pDecSize, char* pKeyName)
 			// failed to find the 'override' key in 'KEYS' file, 
 			// so try 'old-style' keys
 			printf("Error:  Failed to find override SPP key(%s) in new \"KEYS\" file, trying old style keys...\n", pKeyName);	
-			if ( key_get(KEY_SPP, pKeyName, &MyKey) == STATUS_SUCCESS ) 
+			if ( key_get_old(KEY_SPP, pKeyName, &MyKey) == STATUS_SUCCESS ) 
 			{
 				// now populate the "keylist*" with the key we just found
 				if ( load_keylist_from_key(&pMyKeyList, &MyKey) != STATUS_SUCCESS )
@@ -459,7 +462,7 @@ int do_spp_encrypt(char* pInPath, char* pOutPath, char* pType, char* pKeyName)
 			// failed to find the 'override' key in 'KEYS' file, 
 			// so try 'old-style' keys
 			printf("Error:  Failed to find override SPP key(%s) in new \"KEYS\" file, trying old style keys...\n", pKeyName);	
-			if ( key_get(KEY_SPP, pKeyName, &MyKey) == STATUS_SUCCESS ) 
+			if ( key_get_old(KEY_SPP, pKeyName, &MyKey) == STATUS_SUCCESS ) 
 			{
 				if ( load_keylist_from_key(&pMyKeyList, &MyKey) != STATUS_SUCCESS )
 				{
@@ -535,23 +538,3 @@ exit:
 }
 /**/
 /**********************************************************************************************************/
-
-/*
-
-	get_key(argv[1]);
-	get_profile(argv[2]);
-
-	build_sce_hdr();
-	build_meta_hdr();
-
-	build_spp();
-	hash_spp();
-	sign_spp();
-
-	sce_encrypt_data(spp);
-	sce_encrypt_header(spp, &k);
-
-	fwrite(spp, spp_size, 1, fp);
-	fclose(fp);
-
-	*/

@@ -10,6 +10,19 @@
 //
 //	@revision history
 //
+//  v1.3.0.0
+//
+//		-- fixed ECDSA routines, to use all
+//         code from polarssl lib.  All previous
+//         ecdsa code is now removed, along with
+//         old/unused key routines, etc.
+//
+//
+//  v1.2.0.0
+//      -- added encrypt/decrypt functions
+//         for SPP files
+//
+//
 //	v1.1.0.0 
 //		-- code cleanup, using 'scetool' keys
 //		   format, use structure defines, etc
@@ -44,7 +57,7 @@
 
 /////////////////////////////////////////
 /// update for any changes to this code
-#define PKGTOOL_VERSION		"1.2.0.0"
+#define PKGTOOL_VERSION		"1.3.0.0"
 /////////////////////////////////////////
 
 
@@ -185,8 +198,8 @@ int __cdecl main(int argc, char *argv[])
 	g_bZlibCompressLevel = Z_DEFAULT_COMPRESSION;
 	strcpy_s(szType, MAX_PATH, "PKG");
 	strcpy_s(szAction, MAX_PATH, "encrypt");	
-	strcpy_s(szInPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\scratch");
-	strcpy_s(szOutPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\scratch\\test_cos.pkg");
+	strcpy_s(szInPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\VERIFY_FILES\\BDIT");
+	strcpy_s(szOutPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\VERIFY_FILES\\scratch\\BDIT_test.pkg");
 	#elif defined TOOL_DEBUG_TEST_SPKG
 	g_bZlibCompressLevel = Z_DEFAULT_COMPRESSION;
 	strcpy_s(szType, MAX_PATH, "SPKG");
@@ -196,8 +209,8 @@ int __cdecl main(int argc, char *argv[])
 	#elif defined TOOL_DEBUG_TEST_UNPKG
 	strcpy_s(szType, MAX_PATH, "PKG");
 	strcpy_s(szAction, MAX_PATH, "decrypt");	
-	strcpy_s(szInPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\VERIFY_FILES\\BLUETOOTH_TEST.pkg");
-	strcpy_s(szOutPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\VERIFY_FILES\\BLUETOOTH\\scratch");
+	strcpy_s(szInPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\VERIFY_FILES\\bdit_test.pkg");
+	strcpy_s(szOutPath, MAX_PATH, "C:\\_tools\\PKGTOOL_TEST\\VERIFY_FILES\\scratch");
 	#elif defined TOOL_DEBUG_TEST_UNPKG_SPP
 	strcpy_s(szType, MAX_PATH, "SPP");
 	strcpy_s(szAction, MAX_PATH, "decrypt");	
