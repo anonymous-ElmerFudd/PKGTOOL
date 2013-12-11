@@ -78,7 +78,7 @@ void print_hash(u8 *ptr, u32 len)
 }
 
 // function to verify the "SCE_HEADER_MAGIC"
-int verify_sce_header(u8* pInPtr) 
+int verify_sce_header(u8* pInPtr, u32 HdrType) 
 {
 	int retval = -1;
 	u32 magic = 0;	
@@ -92,9 +92,29 @@ int verify_sce_header(u8* pInPtr)
 	// and grab the 'magic' value
 	pSceHdr = (sce_header_t*)pInPtr;	
 	magic = be32((u8*)&pSceHdr->magic);
-	// check if the sig matches
-	if ( (magic == SCE_HEADER_MAGIC) || (magic == PUP_SCE_HEADER_MAGIC) )
-		retval = STATUS_SUCCESS;
+
+	switch (HdrType)
+	{
+		case SIG_SCE_PUP:	
+			// verify PUP SCE header
+			if (magic == PUP_SCE_HEADER_MAGIC) 
+				retval = STATUS_SUCCESS;
+			break;	
+
+		case SIG_SCE_COS:
+		case SIG_SCE_PKG:
+		case SIG_SCE_SPKG:
+		case SIG_SCE_SPP:
+			// verify SCE header
+			if (magic == SCE_HEADER_MAGIC) 
+				retval = STATUS_SUCCESS;
+			break;
+
+		default:
+			retval = -1;
+			printf("Error:  Unknown header type encountered!, exiting....\n");
+			break;
+	};
 
 exit:
 	// return status

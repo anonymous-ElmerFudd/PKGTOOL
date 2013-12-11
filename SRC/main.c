@@ -10,6 +10,13 @@
 //
 //	@revision history
 //
+//  v1.3.1.0
+//
+//		-- minor cleanup for 'sanity' checking
+//		   of input file headers, etc...just for
+//		   catching instances of user error with
+//		   input params
+//
 //  v1.3.0.0
 //
 //		-- fixed ECDSA routines, to use all
@@ -57,7 +64,7 @@
 
 /////////////////////////////////////////
 /// update for any changes to this code
-#define PKGTOOL_VERSION		"1.3.0.0"
+#define PKGTOOL_VERSION		"1.3.1.0"
 /////////////////////////////////////////
 
 

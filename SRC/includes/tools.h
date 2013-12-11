@@ -71,7 +71,7 @@ enum sce_key {
 
 int ecdsa_get_params(u32 type, ecdsa_context* p_ecdsa_ctx);
 void print_hash(u8 *ptr, u32 len);
-int verify_sce_header (u8* pInPtr) ;
+int verify_sce_header(u8* pInPtr, u32 HdrType);
 const char *id2name(u32 id, struct id2name_tbl *t, const char *unk);
 void decompress(u8 *in, u64 in_len, u8 *out, u64 out_len);
 

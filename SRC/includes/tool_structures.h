@@ -41,6 +41,15 @@ extern "C" {
 #define CONFIG_VSH_CURVES_FILE			"vsh_curves"
 #define CONFIG_VSH_CURVES_PATH			"./data"
 
+// enumerate the sce hdr types
+enum _SCE_HDR_TYPES {
+	SIG_SCE_PUP = 0,
+	SIG_SCE_COS,
+	SIG_SCE_PKG,
+	SIG_SCE_SPKG,
+	SIG_SCE_SPP
+};
+
 
 
 #pragma warning (push)

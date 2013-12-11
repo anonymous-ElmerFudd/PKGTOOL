@@ -515,8 +515,8 @@ int do_pup_unpack(char* pInPath, char* pOutPath)
 	}	
 
 	// verify SCE header magic!
-	if ( verify_sce_header(pMyPup) != STATUS_SUCCESS ) {
-		printf("SCE Header is not valid for this file!, exiting!\n");
+	if ( verify_sce_header(pMyPup, SIG_SCE_PUP) != STATUS_SUCCESS ) {
+		printf("SCE Header is not a valid PUP header!, exiting!\n");
 		goto exit;
 	}
 	

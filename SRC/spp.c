@@ -275,8 +275,8 @@ int decrypt_spp(u8* pInSpp, u64* pDecSize, char* pKeyName)
 	pSceHdr = (sce_header_t*)pInSpp;	
 
 	// verify SCE header magic!
-	if ( verify_sce_header((u8*)pSceHdr) != STATUS_SUCCESS ) {
-		printf("SCE Header is not valid for this file!, exiting!\n");
+	if ( verify_sce_header((u8*)pSceHdr, SIG_SCE_SPP) != STATUS_SUCCESS ) {
+		printf("SCE Header is not a valid SPP header!, exiting!\n");
 		goto exit;
 	}
 
@@ -288,7 +288,7 @@ int decrypt_spp(u8* pInSpp, u64* pDecSize, char* pKeyName)
 
 	// check the hdr type
 	if (type != SCE_HEADER_TYPE_SPP) {
-		printf("not a valid PKG/SPKG file\n");
+		printf("not a valid SPP file\n");
 		goto exit;
 	}
 

@@ -565,8 +565,8 @@ int decrypt_pkg(u8* pInPkg, u64* pDecSize, u32* pMetaOffset, char* pKeyName)
 		goto exit;
 	
 	// verify SCE header magic!
-	if ( verify_sce_header(pInPkg) != STATUS_SUCCESS ) {
-		printf("SCE Header is not valid for this file!, exiting!\n");
+	if ( verify_sce_header(pInPkg, SIG_SCE_PKG) != STATUS_SUCCESS ) {
+		printf("SCE Header is not a valid PKG header!, exiting!\n");
 		goto exit;
 	}
 	
@@ -579,7 +579,7 @@ int decrypt_pkg(u8* pInPkg, u64* pDecSize, u32* pMetaOffset, char* pKeyName)
 
 	// check the type from the hdr
 	if (type != SCE_HEADER_TYPE_PKG) {
-		printf("no .pkg file\n");
+		printf("not a valid PKG file\n");
 		goto exit;
 	}
 	

@@ -62,8 +62,8 @@ int decrypt_spkg(u8* pInSpkg, u64* pDecSize, char* pKeyName)
 	pSceHdr = (sce_header_t*)pInSpkg;	
 
 	// verify SCE header magic!
-	if ( verify_sce_header((u8*)pSceHdr) != STATUS_SUCCESS ) {
-		printf("SCE Header is not valid for this file!, exiting!\n");
+	if ( verify_sce_header((u8*)pSceHdr, SIG_SCE_SPKG) != STATUS_SUCCESS ) {
+		printf("SCE Header is not a valid PKG/SPKG header!, exiting!\n");
 		goto exit;
 	}
 
