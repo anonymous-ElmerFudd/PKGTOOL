@@ -263,8 +263,7 @@ int build_hdr(u8** ppCosHdr, u32* pHdrSize, u32 NumFiles, u64 OverrideFileSize, 
 		// otherwise, if our 'override' file size is smaller than our current size,
 		// we have a 'fatal' error, and must exit out
 		else if (OverrideFileSize < (file_size + *pHdrSize)) {
-			printf("!!ERROR!! RE-SIZE failed, current COS 'content' file size: 0x%llx, is LARGER than original size: 0x%x, exiting!!!\n", (file_size + *pHdrSize), MyOverrideFileSize);
-			goto exit;
+			printf("!!WARNING!! RE-SIZE failed, current COS 'content' file size: 0x%llx, is LARGER than original size: 0x%x !!!\n", (file_size + *pHdrSize), MyOverrideFileSize);			
 		}
 		else if (OverrideFileSize == (file_size + *pHdrSize)) {
 			printf("Original COS 'Content' size: 0x%x, is already sized properly, re-size not required...\n", MyOverrideFileSize);

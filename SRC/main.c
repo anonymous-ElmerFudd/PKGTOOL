@@ -10,6 +10,13 @@
 //
 //	@revision history
 //
+//  v1.3.2.0
+//
+//		-- fixed 'setpkgsize' param to allow
+//		   size 0 inputsize, to make it easier
+//		   for occasions where NO resize is desired
+//		   (but still leave the cmdline option there)
+//
 //  v1.3.1.0
 //
 //		-- minor cleanup for 'sanity' checking
@@ -64,7 +71,7 @@
 
 /////////////////////////////////////////
 /// update for any changes to this code
-#define PKGTOOL_VERSION		"1.3.1.0"
+#define PKGTOOL_VERSION		"1.3.2.0"
 /////////////////////////////////////////
 
 
@@ -408,9 +415,7 @@ int __cdecl main(int argc, char *argv[])
 					usage("-setpkgsize");
 				if ( (argv[i+1][0] == '-') || (strlen(argv[i+1]) < 1) || (strlen(argv[i+1]) > 20) )
 					usage("-setpkgsize");
-				override_file_size = atoi(argv[i+1]);				
-				if (override_file_size == 0)
-					usage("-setpkgsize");						
+				override_file_size = atoi(argv[i+1]);												
 				b_OverrideFileSize = TRUE;
 				i++;
 				break;
