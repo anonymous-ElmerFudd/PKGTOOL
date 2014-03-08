@@ -10,6 +10,14 @@
 //
 //	@revision history
 //
+//  v1.3.3.0
+//
+//		-- fixed 'exit status' from program
+//         to properly return failure status
+//         when any functions fail....
+//         also fixed up keyload() funcs from scetool
+//         lib to properly handled 'empty' keys lists...
+//
 //  v1.3.2.0
 //
 //		-- fixed 'setpkgsize' param to allow
@@ -71,7 +79,7 @@
 
 /////////////////////////////////////////
 /// update for any changes to this code
-#define PKGTOOL_VERSION		"1.3.2.0"
+#define PKGTOOL_VERSION		"1.3.3.0"
 /////////////////////////////////////////
 
 
@@ -191,6 +199,7 @@ int __cdecl main(int argc, char *argv[])
 	int index = 0;
 	uint32_t args_mask = 0;
 	uint32_t override_file_size = 0;
+	uint32_t retval = EXIT_FAILURE;
 
 
 
@@ -506,6 +515,7 @@ int __cdecl main(int argc, char *argv[])
 
 		// SUCCESS!  Done!
 		printf("\n...%s encrypting complete!\n\n", szType);
+		retval = EXIT_SUCCESS;
 		
 	} 
 	//																													//
@@ -552,6 +562,7 @@ int __cdecl main(int argc, char *argv[])
 
 		// SUCCESS!  Done!
 		printf("\n...%s decrypting complete!\n\n", szType);
+		retval = EXIT_SUCCESS;
 
 	} // end "unpkg" section
 	//																											//
@@ -587,6 +598,7 @@ int __cdecl main(int argc, char *argv[])
 
 		// SUCCESS!  Done!
 		printf("\n...%s unpacking Complete!\n\n", szType);
+		retval = EXIT_SUCCESS;
 		
 	} // end of "UNPACK" section
 	//																													//
@@ -625,6 +637,7 @@ int __cdecl main(int argc, char *argv[])
 
 		// SUCCESS!  Done!
 		printf("\n...%s packing complete!\n\n", szType);
+		retval = EXIT_SUCCESS;
 
 	} // end of "pack" section
 	//																													//
@@ -633,8 +646,8 @@ int __cdecl main(int argc, char *argv[])
 
 	
 exit:		
-
-	return 0;
+	// return our final status
+	return retval;
 }
 /**/
 /********************************************************************************************************/

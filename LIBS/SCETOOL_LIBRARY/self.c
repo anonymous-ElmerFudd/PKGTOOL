@@ -615,7 +615,7 @@ BOOL __stdcall self_write_to_elf(sce_buffer_ctxt_t *ctxt, const s8 *elf_out)
 				if(msh[i].compressed == METADATA_SECTION_COMPRESSED)
 				{
 					_es_elf64_phdr(&ph64[msh[i].index]);
-					data = (u8 *)malloc(ph[msh[i].index].p_filesz);
+					data = (u8 *)calloc(ph[msh[i].index].p_filesz, sizeof(char));
 
 					_zlib_inflate(ctxt->scebuffer + msh[i].data_offset, msh[i].data_size, data, ph[msh[i].index].p_filesz);
 					fseek(fp, ph[msh[i].index].p_offset, SEEK_SET);
@@ -679,7 +679,7 @@ static BOOL __stdcall _create_control_infos(sce_buffer_ctxt_t *ctxt, self_config
 	case SELF_TYPE_NPDRM: //TODO: <-- figure more out.
 		{
 			//Add control flags.
-			ci = (control_info_t *)malloc(sizeof(control_info_t) + sizeof(ci_data_flags_t));
+			ci = (control_info_t *)calloc((sizeof(control_info_t) + sizeof(ci_data_flags_t)), sizeof(char));
 			ci->type = CONTROL_INFO_TYPE_FLAGS;
 			ci->size = sizeof(control_info_t) + sizeof(ci_data_flags_t);
 			ci->next = 1;
@@ -709,7 +709,7 @@ static BOOL __stdcall _create_control_infos(sce_buffer_ctxt_t *ctxt, self_config
 	case SELF_TYPE_NPDRM:
 		{
 			//Add digest 0x40.
-			ci = (control_info_t *)malloc(sizeof(control_info_t) + sizeof(ci_data_digest_40_t));
+			ci = (control_info_t *)calloc((sizeof(control_info_t) + sizeof(ci_data_digest_40_t)), sizeof(char));
 			ci->type = CONTROL_INFO_TYPE_DIGEST;
 			ci->size = sizeof(control_info_t) + sizeof(ci_data_digest_40_t);
 			if(self_type == SELF_TYPE_NPDRM)
@@ -745,7 +745,7 @@ static BOOL __stdcall _create_control_infos(sce_buffer_ctxt_t *ctxt, self_config
 			if(sconf->npdrm_config == NULL)
 				return FALSE;
 
-			ci = (control_info_t *)malloc(sizeof(control_info_t) + sizeof(ci_data_npdrm_t));
+			ci = (control_info_t *)calloc((sizeof(control_info_t) + sizeof(ci_data_npdrm_t)), sizeof(char));
 			ci->type = CONTROL_INFO_TYPE_NPDRM;
 			ci->size = sizeof(control_info_t) + sizeof(ci_data_npdrm_t);
 			ci->next = 0;
@@ -825,7 +825,7 @@ static BOOL __stdcall _create_optional_headers(sce_buffer_ctxt_t *ctxt, self_con
 	case SELF_TYPE_NPDRM:
 		{
 			//Add capability flags.
-			oh = (opt_header_t *)malloc(sizeof(opt_header_t) + sizeof(oh_data_cap_flags_t));
+			oh = (opt_header_t *)calloc((sizeof(opt_header_t) + sizeof(oh_data_cap_flags_t)), sizeof(char));
 			oh->type = OPT_HEADER_TYPE_CAP_FLAGS;
 			oh->size = sizeof(opt_header_t) + sizeof(oh_data_cap_flags_t);
 			if(self_type == SELF_TYPE_ISO)
@@ -852,7 +852,7 @@ static BOOL __stdcall _create_optional_headers(sce_buffer_ctxt_t *ctxt, self_con
 	case SELF_TYPE_ISO:
 		{
 			//Add individuals seed.
-			oh = (opt_header_t *)malloc(sizeof(opt_header_t) + 0x100);
+			oh = (opt_header_t *)calloc((sizeof(opt_header_t) + 0x100), sizeof(char));
 			oh->type = OPT_HEADER_TYPE_INDIV_SEED;
 			oh->size = sizeof(opt_header_t) + 0x100;
 			oh->next = 0;
@@ -942,10 +942,10 @@ static BOOL __stdcall _build_self_32(sce_buffer_ctxt_t *ctxt, self_config_t *sco
 	}
 
 	//Allocate metadata section headers (one for each program header and one for the section headers).
-	ctxt->metash = (metadata_section_header_t *)malloc(sizeof(metadata_section_header_t) * (ehdr->e_phnum + 1));
+	ctxt->metash = (metadata_section_header_t *)calloc((sizeof(metadata_section_header_t) * (ehdr->e_phnum + 1)), sizeof(char));
 
 	//Copy sections, fill section infos and metadata section headers.
-	ctxt->self.si = (section_info_t *)malloc(sizeof(section_info_t) * ehdr->e_phnum);
+	ctxt->self.si = (section_info_t *)calloc((sizeof(section_info_t) * ehdr->e_phnum), sizeof(char));
 	for(i = 0; i < ehdr->e_phnum; i++)
 	{
 		_es_elf32_phdr(&phdrs[i]);
@@ -1005,10 +1005,10 @@ static BOOL __stdcall _build_self_64(sce_buffer_ctxt_t *ctxt, self_config_t *sco
 	}
 
 	//Allocate metadata section headers (one for each program header and one for the section headers).
-	ctxt->metash = (metadata_section_header_t *)malloc(sizeof(metadata_section_header_t) * (ehdr->e_phnum + 1));
+	ctxt->metash = (metadata_section_header_t *)calloc((sizeof(metadata_section_header_t) * (ehdr->e_phnum + 1)), sizeof(char));
 
 	//Copy sections, fill section infos and metadata section headers.
-	ctxt->self.si = (section_info_t *)malloc(sizeof(section_info_t) * ehdr->e_phnum);
+	ctxt->self.si = (section_info_t *)calloc((sizeof(section_info_t) * ehdr->e_phnum), sizeof(char));
 	loff = 0xFFFFFFFF;
 	skip = 0;
 	for(i = 0; i < ehdr->e_phnum; i++)

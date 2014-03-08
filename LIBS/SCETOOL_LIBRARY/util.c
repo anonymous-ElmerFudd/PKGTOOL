@@ -60,7 +60,7 @@ u8* __stdcall _read_buffer(const s8 *file, u32 *length)
 	size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 
-	buffer = (u8 *)malloc(sizeof(u8) * size);
+	buffer = (u8 *)calloc((sizeof(u8) * size), sizeof(char));
 	fread(buffer, sizeof(u8), size, fp);
 
 	if(length != NULL)
@@ -198,7 +198,7 @@ void __stdcall _memcpy_inv(u8 *dst, u8 *src, u32 len)
 
 void* __stdcall _memdup(void *ptr, u32 size)
 {
-	void *res = malloc(size);
+	void *res = calloc(size, sizeof(char));
 
 	if(res != NULL)
 		memcpy(res, ptr, size);
@@ -240,7 +240,7 @@ u8* __stdcall _x_to_u8_buffer(const s8 *hex)
 	if(len % 2 != 0)
 		return NULL;
 
-	res = (u8 *)malloc(sizeof(u8) * len);
+	res = (u8 *)calloc((sizeof(u8) * len), sizeof(char));
 	ptr = res;
 
 	while(len--)

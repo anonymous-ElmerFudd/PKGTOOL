@@ -17,7 +17,7 @@ list_t* __stdcall list_create()
 {
 	list_t *res;
 	
-	if((res = (list_t *)malloc(sizeof(list_t))) == NULL)
+	if((res = (list_t *)calloc(sizeof(list_t), sizeof(char))) == NULL)
 		return NULL;
 	
 	res->head = NULL;
@@ -26,24 +26,33 @@ list_t* __stdcall list_create()
 	return res;
 }
 
-void __stdcall list_destroy(list_t *l)
+void __stdcall list_destroy(list_t** ppList)
 {
 	lnode_t *iter = NULL;
 	lnode_t *tmp = NULL;
+	list_t* pMyList = NULL;
 
 	// validate input params
-	if(l == NULL)
-		return;
+	if (ppList == NULL)
+		goto exit;
+	if(*ppList == NULL)
+		goto exit;
 	
-	iter = l->head;	
+	pMyList = (list_t*)*ppList;
+	iter = pMyList->head;	
 	while(iter != NULL)
 	{
 		tmp = iter;
 		iter = iter->next;
 		free(tmp);
 	}
-	
-	free(l);
+	// free the list pointer, and
+	// make sure to set pointer value to NULL
+	free(*ppList);
+	*ppList = NULL;
+
+exit:
+	return;
 }
 
 BOOL __stdcall list_isempty(list_t *l)
@@ -75,7 +84,7 @@ BOOL __stdcall list_push(list_t *l, void *value)
 		return FALSE;		
 	
 	//Allocate new node.
-	if((_new = (lnode_t *)malloc(sizeof(lnode_t))) == NULL)
+	if((_new = (lnode_t *)calloc(sizeof(lnode_t), sizeof(char))) == NULL)
 		return FALSE;
 	
 	//Insert.
@@ -120,7 +129,7 @@ BOOL __stdcall list_add_back(list_t *l, void *value)
 		return FALSE;		
 	
 	//Allocate new node.
-	if((_new = (lnode_t *)malloc(sizeof(lnode_t))) == NULL)
+	if((_new = (lnode_t *)calloc(sizeof(lnode_t), sizeof(char))) == NULL)
 		return FALSE;
 	
 	_new->value = value;

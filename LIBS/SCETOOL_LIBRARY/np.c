@@ -237,7 +237,7 @@ BOOL __stdcall np_sign_file(s8 *fname)
 	}
 
 	fseek(fp, 0, SEEK_SET);
-	if((buffer = (u8 *)malloc(length)) == NULL)
+	if((buffer = (u8 *)calloc(length, sizeof(char))) == NULL)
 	{
 		fclose(fp);
 		return FALSE;

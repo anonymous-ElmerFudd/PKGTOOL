@@ -30,7 +30,7 @@ typedef struct _list
 } list_t;
 
 list_t* __stdcall list_create();
-void __stdcall list_destroy(list_t *l);
+void __stdcall list_destroy(list_t** ppList);
 BOOL __stdcall list_isempty(list_t *l);
 u32 __stdcall list_count(list_t *l);
 BOOL __stdcall list_push(list_t *l, void *value);

@@ -40,11 +40,11 @@ ctype=...
 */
 
 /*! Loaded keysets. */
-list_t *_keysets;
+list_t *_keysets = NULL;
 /*! Loaded curves. */
-curve_t *_curves;
+curve_t *_curves = NULL;
 /*! Loaded VSH curves. */
-vsh_curve_t *_vsh_curves;
+vsh_curve_t *_vsh_curves = NULL;
 
 static u8 rap_init_key[0x10] = 
 {
@@ -146,6 +146,11 @@ static void __stdcall _sort_keysets()
 	lnode_t* iter = NULL;
 	list_t* tmp = NULL;
 
+
+
+	// exit if keylist is not setup
+	if (_keysets == NULL)
+		goto exit;
 	
 	i = to = _keysets->count;
 	tmp = list_create();
@@ -162,8 +167,11 @@ static void __stdcall _sort_keysets()
 		list_remove_node(_keysets, max);
 	}
 
-	list_destroy(_keysets);
+	list_destroy(&_keysets);
 	_keysets = tmp;
+
+exit:
+	return;
 }
 
 void __stdcall _print_key_list(FILE *fp)
@@ -173,6 +181,11 @@ void __stdcall _print_key_list(FILE *fp)
 	s32 tmp = 0;
 	lnode_t* iter = NULL;
 
+	// exit if keylist is not setup
+	if (_keysets == NULL) {
+		printf("\nKeylist is empty!, no keys to print!\n");
+		goto exit;
+	}
 
 
 //	LIST_FOREACH(iter, _keysets)
@@ -204,22 +217,28 @@ void __stdcall _print_key_list(FILE *fp)
 		else
 			fprintf(fp, "\n");
 	}
+
+exit:
+	return;
 }
 
 #define LINEBUFSIZE 512
 BOOL __stdcall keys_load(const s8 *kfile)
 {
-	u32 i = 0, lblen;
-	FILE *fp;
-	s8 lbuf[LINEBUFSIZE];
+	u32 i = 0, lblen = 0;
+	FILE *fp = NULL;
+	s8 lbuf[LINEBUFSIZE] = {0};
 	keyset_t *cks = NULL;
 
+
+
+	// create the initial list
 	if((_keysets = list_create()) == NULL)
 		return FALSE;
 
 	if((fp = fopen(kfile, "r")) == NULL)
 	{
-		list_destroy(_keysets);
+		list_destroy(&_keysets);
 		return FALSE;
 	}
 
@@ -251,7 +270,7 @@ BOOL __stdcall keys_load(const s8 *kfile)
 				lbuf[i] = 0;
 
 				//Allocate keyset and fill name.
-				cks = (keyset_t *)malloc(sizeof(keyset_t));
+				cks = (keyset_t *)calloc(sizeof(keyset_t), sizeof(char));
 				memset(cks, 0, sizeof(keyset_t));
 				cks->name = _strdup(&lbuf[1]);
 			}
@@ -283,11 +302,17 @@ keyset_t* __stdcall _keyset_find_for_self(u32 self_type, u16 key_revision, u64 v
 	lnode_t* iter = NULL;
 
 
+
+	// exit if keylist is not setup
+	if (_keysets == NULL) {
+		printf("\nKeyList is empty!\n");
+		goto exit;
+	}
+
 //	LIST_FOREACH(iter, _keysets)
 	for(iter = _keysets->head; iter != NULL; iter = iter->next)
 	{
 		keyset_t *ks = (keyset_t *)iter->value;
-
 		if(ks->self_type == self_type)
 		{
 			switch(self_type)
@@ -322,6 +347,7 @@ keyset_t* __stdcall _keyset_find_for_self(u32 self_type, u16 key_revision, u64 v
 		}
 	}
 
+exit:
 	return NULL;
 }
 
@@ -331,6 +357,12 @@ keyset_t* __stdcall _keyset_find_for_rvk(u32 key_revision)
 	lnode_t* iter = NULL;
 
 
+	// exit if keylist is not setup
+	if (_keysets == NULL) {
+		printf("\nKeyList is empty!\n");
+		goto exit;
+	}
+
 //	LIST_FOREACH(iter, _keysets)
 	for(iter = _keysets->head; iter != NULL; iter = iter->next)
 	{
@@ -339,6 +371,7 @@ keyset_t* __stdcall _keyset_find_for_rvk(u32 key_revision)
 			return ks;
 	}
 
+exit:
 	return NULL;
 }
 
@@ -348,6 +381,12 @@ keyset_t* __stdcall _keyset_find_for_pkg(u16 key_revision)
 	lnode_t* iter = NULL;
 
 
+	// exit if keylist is not setup
+	if (_keysets == NULL) {
+		printf("\nKeyList is empty!\n");
+		goto exit;
+	}
+
 //	LIST_FOREACH(iter, _keysets)
 	for(iter = _keysets->head; iter != NULL; iter = iter->next)
 	{
@@ -356,6 +395,7 @@ keyset_t* __stdcall _keyset_find_for_pkg(u16 key_revision)
 			return ks;
 	}
 
+exit:
 	return NULL;
 }
 
@@ -365,6 +405,12 @@ keyset_t* __stdcall _keyset_find_for_spp(u16 key_revision)
 	lnode_t* iter = NULL;
 
 
+	// exit if keylist is not setup
+	if (_keysets == NULL) {
+		printf("\nKeyList is empty!\n");
+		goto exit;
+	}
+
 //	LIST_FOREACH(iter, _keysets)
 	for(iter = _keysets->head; iter != NULL; iter = iter->next)
 	{
@@ -373,6 +419,7 @@ keyset_t* __stdcall _keyset_find_for_spp(u16 key_revision)
 			return ks;
 	}
 
+exit:
 	return NULL;
 }
 
@@ -408,6 +455,12 @@ keyset_t* __stdcall keyset_find_by_name(const s8 *name)
 	keyset_t *ks = NULL;
 
 
+	// exit if keylist is not setup
+	if (_keysets == NULL) {
+		printf("\nKeyList is empty!\n");
+		goto exit;
+	}
+
 //	LIST_FOREACH(iter, _keysets)
 	for(iter = _keysets->head; iter != NULL; iter = iter->next)
 	{
@@ -418,6 +471,7 @@ keyset_t* __stdcall keyset_find_by_name(const s8 *name)
 
 	printf("[*] Error: Could not find keyset '%s'.\n", name);
 
+exit:	
 	return NULL;
 }
 
@@ -441,9 +495,19 @@ BOOL __stdcall curves_load(const s8 *cfile)
 
 curve_t* __stdcall curve_find(u8 ctype)
 {
+	// exit if _curves is not setup
+	if (_curves == NULL) {
+		printf("\nCurves is empty!\n");
+		goto exit;
+	}
 	if(ctype > CTYPE_MAX)
-		return NULL;
+		goto exit;
+
+	// return the curves data
 	return &_curves[ctype];
+
+exit:
+	return NULL;
 }
 
 BOOL __stdcall vsh_curves_load(const s8 *cfile)
@@ -467,8 +531,14 @@ BOOL __stdcall vsh_curves_load(const s8 *cfile)
 static curve_t _tmp_curve;
 curve_t* __stdcall vsh_curve_find(u8 ctype)
 {
+
+	// exit if _curves is not setup
+	if (_vsh_curves == NULL) {
+		printf("\vsh_curves is empty!\n");
+		goto exit;
+	}
 	if(ctype > VSH_CTYPE_MAX)
-		return NULL;
+		goto exit;
 
 	_memcpy_inv(_tmp_curve.p, _vsh_curves[ctype].p, 20);
 	_memcpy_inv(_tmp_curve.a, _vsh_curves[ctype].a, 20);
@@ -479,6 +549,9 @@ curve_t* __stdcall vsh_curve_find(u8 ctype)
 	_memcpy_inv(_tmp_curve.Gy, _vsh_curves[ctype].Gx, 20);
 
 	return &_tmp_curve;
+
+exit:
+	return NULL;
 }
 
 static u8* __stdcall idps_load()
@@ -751,7 +824,7 @@ keyset_t* __stdcall keyset_from_buffer(u8 *keyset)
 {
 	keyset_t *ks;
 
-	if((ks = (keyset_t *)malloc(sizeof(keyset_t))) == NULL)
+	if((ks = (keyset_t *)calloc(sizeof(keyset_t), sizeof(char))) == NULL)
 		return NULL;
 
 	ks->erk = (u8 *)_memdup(keyset, 0x20);

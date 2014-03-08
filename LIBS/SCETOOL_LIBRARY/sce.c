@@ -116,7 +116,7 @@ static sce_buffer_ctxt_t* __stdcall _sce_create_ctxt()
 {
 	sce_buffer_ctxt_t *res;
 
-	if((res = (sce_buffer_ctxt_t *)malloc(sizeof(sce_buffer_ctxt_t))) == NULL)
+	if((res = (sce_buffer_ctxt_t *)calloc(sizeof(sce_buffer_ctxt_t), sizeof(char))) == NULL)
 		return NULL;
 
 	memset(res, 0, sizeof(sce_buffer_ctxt_t));
@@ -125,20 +125,20 @@ static sce_buffer_ctxt_t* __stdcall _sce_create_ctxt()
 	res->mdec = TRUE;
 
 	//Allocate SCE header.
-	res->sceh = (sce_header_t *)malloc(sizeof(sce_header_t));
+	res->sceh = (sce_header_t *)calloc(sizeof(sce_header_t), sizeof(char));
 	memset(res->sceh, 0, sizeof(sce_header_t));
 
 	//Allocate metadata info (with random key/iv).
-	res->metai = (metadata_info_t *)malloc(sizeof(metadata_info_t));
+	res->metai = (metadata_info_t *)calloc(sizeof(metadata_info_t), sizeof(char));
 	_fill_rand_bytes(res->metai->key, 0x10);
 	memset(res->metai->key_pad, 0, 0x10);
 	_fill_rand_bytes(res->metai->iv, 0x10);
 	memset(res->metai->iv_pad, 0, 0x10);
 	//Allocate metadata header.
-	res->metah = (metadata_header_t *)malloc(sizeof(metadata_header_t));
+	res->metah = (metadata_header_t *)calloc(sizeof(metadata_header_t), sizeof(char));
 	//memset(res->metah, 0, sizeof(metadata_header_t));
 	//Allocate signature.
-	res->sig = (signature_t *)malloc(sizeof(signature_t));
+	res->sig = (signature_t *)calloc(sizeof(signature_t), sizeof(char));
 
 	res->makeself = NULL;
 
@@ -152,7 +152,7 @@ sce_buffer_ctxt_t* __stdcall sce_create_ctxt_from_buffer(u8 *scebuffer)
 
 
 	// alloc memory
-	if((res = (sce_buffer_ctxt_t *)malloc(sizeof(sce_buffer_ctxt_t))) == NULL)
+	if((res = (sce_buffer_ctxt_t *)calloc(sizeof(sce_buffer_ctxt_t), sizeof(char))) == NULL)
 		return NULL;
 
 	memset(res, 0, sizeof(sce_buffer_ctxt_t));
@@ -244,21 +244,21 @@ sce_buffer_ctxt_t* __stdcall sce_create_ctxt_build_self(u8 *elf, u32 elf_len)
 	res->sceh->header_type = SCE_HEADER_TYPE_SELF;
 
 	//Allocate SELF header.
-	res->self.selfh = (self_header_t *)malloc(sizeof(self_header_t));
+	res->self.selfh = (self_header_t *)calloc(sizeof(self_header_t), sizeof(char));
 	memset(res->self.selfh, 0, sizeof(self_header_t));
 	res->self.selfh->header_type = SUB_HEADER_TYPE_SELF;
 	//Allocate application info.
-	res->self.ai = (app_info_t *)malloc(sizeof(app_info_t));
+	res->self.ai = (app_info_t *)calloc(sizeof(app_info_t), sizeof(char));
 	memset(res->self.ai, 0, sizeof(app_info_t));
 	//SCE version.
-	res->self.sv = (sce_version_t *)malloc(sizeof(sce_version_t));
+	res->self.sv = (sce_version_t *)calloc(sizeof(sce_version_t), sizeof(char));
 	//Create control info list.
 	res->self.cis = list_create();
 	//Create optional headers list.
 	res->self.ohs = list_create();
 
 	//Makeself context.
-	res->makeself = (makeself_ctxt_t *)malloc(sizeof(makeself_ctxt_t));
+	res->makeself = (makeself_ctxt_t *)calloc(sizeof(makeself_ctxt_t), sizeof(char));
 	memset(res->makeself, 0, sizeof(makeself_ctxt_t));
 	//ELF buffer.
 	res->makeself->elf = elf;
@@ -272,7 +272,7 @@ sce_buffer_ctxt_t* __stdcall sce_create_ctxt_build_self(u8 *elf, u32 elf_len)
 
 void __stdcall sce_add_data_section(sce_buffer_ctxt_t *ctxt, void *buffer, u32 size, BOOL may_compr)
 {
-	sce_section_ctxt_t *sctxt = (sce_section_ctxt_t *)malloc(sizeof(sce_section_ctxt_t));
+	sce_section_ctxt_t *sctxt = (sce_section_ctxt_t *)calloc(sizeof(sce_section_ctxt_t), sizeof(char));
 	sctxt->buffer = buffer;
 	sctxt->size = size;
 	sctxt->may_compr = may_compr;
@@ -306,7 +306,7 @@ void __stdcall sce_compress_data(sce_buffer_ctxt_t *ctxt)
 			if(sec->size > 0)
 			{
 				size_comp = size_bound = compressBound(sec->size);
-				buf = (u8 *)malloc(sizeof(u8) * size_bound);
+				buf = (u8 *)calloc((sizeof(u8) * size_bound), sizeof(char));
 				compress(buf, &size_comp, (const u8 *)sec->buffer, sec->size);
 
 				if(size_comp < sec->size)
@@ -486,7 +486,7 @@ void __stdcall _sce_fixup_keys(sce_buffer_ctxt_t *ctxt)
 	}
 
 	//Allocate and fill keys array.
-	ctxt->keys = (u8 *)malloc(sizeof(u8) * ctxt->keys_len);
+	ctxt->keys = (u8 *)calloc((sizeof(u8) * ctxt->keys_len), sizeof(char));
 	_fill_rand_bytes(ctxt->keys, ctxt->keys_len);
 
 #ifndef CONFIG_PRIVATE_BUILD	
@@ -591,7 +591,7 @@ static void __stdcall _sce_build_header(sce_buffer_ctxt_t *ctxt)
 	lnode_t* iter = NULL;
 
 	//Allocate header buffer.
-	ctxt->scebuffer = (u8*)malloc(sizeof(u8) * (size_t)ctxt->sceh->header_len);
+	ctxt->scebuffer = (u8*)calloc((sizeof(u8) * (size_t)ctxt->sceh->header_len), sizeof(char));
 	memset(ctxt->scebuffer, 0, sizeof(u8) * (size_t)ctxt->sceh->header_len);
 
 	//SCE header.
